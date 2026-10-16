@@ -177,4 +177,33 @@ describe('ReviewKit', () => {
     setup([photo(1), photo(2, { status: 'failed', url: null, version: null, error: 'x' })]);
     expect(screen.getByRole('button', { name: 'Baixar kit' })).toBeDisabled();
   });
+
+  test('clicar numa foto abre a comparação com a original; setas trocam de foto e Esc fecha', async () => {
+    setup([photo(1), photo(2), photo(3, { kind: 'fixed', type: null })]);
+    fireEvent.click(screen.getByRole('button', { name: 'Comparar foto 1 com a original' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByAltText('Foto 1 ampliada')).toHaveAttribute('src', 'https://img/1.jpg');
+    expect(within(dialog).getByAltText('Foto original ampliada')).toHaveAttribute('src', 'https://img/original.jpg');
+    expect(within(dialog).getByRole('button', { name: 'Foto anterior' })).toBeDisabled();
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(within(screen.getByRole('dialog')).getByAltText('Foto 2 ampliada')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  test('a arte fixa da loja abre sem a original e sem Refazer', () => {
+    setup([photo(1), photo(2, { kind: 'fixed', type: null })]);
+    fireEvent.click(screen.getByRole('button', { name: 'Ampliar foto 2' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).queryByAltText('Foto original ampliada')).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: /Refazer/ })).not.toBeInTheDocument();
+  });
+
+  test('Refazer na comparação gera só aquela foto e fecha a janela', async () => {
+    const { generate } = setup([photo(1), photo(2)]);
+    fireEvent.click(screen.getByRole('button', { name: 'Comparar foto 2 com a original' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Refazer esta foto' }));
+    await waitFor(() => expect(generate).toHaveBeenCalledWith(2));
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,7 +1,9 @@
 import { InviteForm } from '@/components/store/InviteForm';
+import { Icon } from '@/components/ui/Icon';
 import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Equipe' };
 
 export default async function TeamPage() {
   const user = await requireUser();
@@ -10,14 +12,23 @@ export default async function TeamPage() {
 
   return (
     <main className="settings-page">
-      <h1>Equipe</h1>
+      <div className="page-head">
+        <div>
+          <h1>Equipe</h1>
+          <p className="sub">Não existe cadastro aberto: cada pessoa entra por convite e recebe um e-mail para criar a senha.</p>
+        </div>
+      </div>
       {profile?.role === 'admin' ? (
         <div className="panel">
-          <p>Não existe cadastro aberto: cada pessoa entra por convite. Ela recebe um e-mail para criar a senha.</p>
+          <div className="head">
+            <h2>Convidar uma pessoa</h2>
+          </div>
           <InviteForm />
         </div>
       ) : (
-        <p role="note">Só o administrador pode convidar pessoas.</p>
+        <p className="alert" role="note">
+          <Icon name="lock" size={16} /> Só o administrador pode convidar pessoas.
+        </p>
       )}
     </main>
   );

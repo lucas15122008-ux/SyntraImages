@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { inviteMember } from '@/lib/auth/actions';
 
 export function InviteForm() {
@@ -24,15 +25,25 @@ export function InviteForm() {
 
   return (
     <form onSubmit={submit} className="invite-form">
-      <input type="email" required value={email} placeholder="email@empresa.com.br" aria-label="E-mail da pessoa" onChange={(e) => setEmail(e.target.value)} />
+      <span className="input-icon">
+        <Icon name="mail" size={16} />
+        <input type="email" required value={email} placeholder="email@empresa.com.br" aria-label="E-mail da pessoa" onChange={(e) => setEmail(e.target.value)} />
+      </span>
       <button type="submit" className="btn" disabled={busy}>
         {busy ? 'Enviando…' : 'Enviar convite'}
+        {!busy && <Icon name="arrowRight" size={16} />}
       </button>
-      {message && (
-        <p className={message.ok ? 'note' : 'field-error'} role={message.ok ? 'status' : 'alert'}>
-          {message.text}
-        </p>
-      )}
+      {message &&
+        (message.ok ? (
+          <p className="status-ok" role="status" style={{ flexBasis: '100%' }}>
+            <Icon name="check" size={16} />
+            {message.text}
+          </p>
+        ) : (
+          <p className="field-error" role="alert" style={{ flexBasis: '100%' }}>
+            {message.text}
+          </p>
+        ))}
     </form>
   );
 }

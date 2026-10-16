@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { signOut } from '@/lib/auth/actions';
 import { getSupabaseServer } from '@/lib/supabase/server';
+import { Icon, LogoMark } from '@/components/ui/Icon';
+import { NavLinks } from './NavLinks';
+import { ThemeToggle } from './ThemeToggle';
 
-/** Cabeçalho: marca e navegação. Sem login (tela de /login), mostra só a marca. */
+/** Cabeçalho: marca, navegação e tema. Sem login (tela de /login), mostra só a marca e o tema. */
 export async function AppHeader() {
   let signedIn = false;
   let isAdmin = false;
@@ -20,20 +23,25 @@ export async function AppHeader() {
 
   return (
     <header className="app-header">
-      <Link className="brand" href="/">
-        SyntraImages
+      <Link className="brand" href="/" aria-label="SyntraImages, início">
+        <LogoMark size={34} />
+        <span className="brand-text">SyntraImages</span>
       </Link>
-      {signedIn && (
-        <nav className="nav" aria-label="Principal">
-          <Link href="/kits/novo">Novo kit</Link>
-          <Link href="/">Meus kits</Link>
-          <Link href="/configuracoes/loja">Fotos da loja</Link>
-          {isAdmin && <Link href="/configuracoes/equipe">Equipe</Link>}
+      <div className="header-right">
+        {signedIn && (
+          <nav className="nav" aria-label="Principal">
+            <NavLinks isAdmin={isAdmin} />
+          </nav>
+        )}
+        <ThemeToggle />
+        {signedIn && (
           <form action={signOut}>
-            <button type="submit">Sair</button>
+            <button type="submit" className="icon-btn" aria-label="Sair" title="Sair">
+              <Icon name="logout" />
+            </button>
           </form>
-        </nav>
-      )}
+        )}
+      </div>
     </header>
   );
 }

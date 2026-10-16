@@ -1,7 +1,11 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePrefersReducedMotion } from '@/components/motion/presets';
+import { Icon } from '@/components/ui/Icon';
 import { isReadyForDownload } from '@/lib/kit/download';
+import { CompareLightbox } from './CompareLightbox';
 import { PhotoCard, type ReviewPhoto } from './PhotoCard';
 
 export type { ReviewPhoto } from './PhotoCard';
@@ -28,6 +32,8 @@ export function ReviewKit({ title, originalUrl, photos, generate, setWarning, re
   const [inFlight, setInFlight] = useState<ReadonlySet<number>>(new Set());
   const [errors, setErrors] = useState<Record<number, string | null>>({});
   const started = useRef(false);
+  const [openPos, setOpenPos] = useState<number | null>(null);
+  const reduced = usePrefersReducedMotion();
 
   const run = useCallback(
     async (position: number) => {
@@ -76,16 +82,42 @@ export function ReviewKit({ title, originalUrl, photos, generate, setWarning, re
 
   const allDone = photos.every((p) => isReadyForDownload(p.status, !!p.url) && !inFlight.has(p.position));
   const warned = photos.filter((p) => p.warn);
+  const ready = photos.filter((p) => isReadyForDownload(p.status, !!p.url) && !inFlight.has(p.position)).length;
+  const working = photos.some((p) => inFlight.has(p.position) || (p.status === 'generating' && !p.stale) || (p.kind !== 'fixed' && p.status === 'pending'));
+
+  // Só dá para abrir as fotos que já têm imagem.
+  const viewable = photos.filter((p) => !!p.url && !inFlight.has(p.position));
+  const openIndex = viewable.findIndex((p) => p.position === openPos);
+  const opened = openIndex >= 0 ? viewable[openIndex] : null;
+  const closeViewer = useCallback(() => setOpenPos(null), []);
 
   return (
     <div className="panel">
-      <div className="head">
-        <h2>{title}</h2>
-        <span className="note">{photos.length} fotos. Refaça só as que não servem.</span>
+      <div className="review-top">
+        <div className="head">
+          <h2>{title}</h2>
+          <span className="note">{photos.length} fotos. Refaça só as que não servem.</span>
+        </div>
+        <div className="progress-row">
+          <span>
+            <strong>{ready}</strong> de <strong>{photos.length}</strong> prontas
+          </span>
+          <span>{working ? 'Gerando com IA…' : allDone ? 'Kit completo' : 'Algumas fotos precisam ser refeitas'}</span>
+        </div>
+        <div className={`progress${working ? ' live' : ''}`} aria-hidden="true">
+          <motion.span
+            initial={false}
+            animate={{ width: `${photos.length ? (ready / photos.length) * 100 : 0}%` }}
+            transition={reduced ? { duration: 0 } : { duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </div>
       </div>
       {warned.length > 0 && (
         <div className="alert" role="status">
-          {warned.map((p) => `Foto ${p.position}`).join(', ')}: pode não mostrar este ângulo na foto original. Confira antes de publicar e refaça se preciso.
+          <Icon name="alert" size={16} />
+          <span>
+            {warned.map((p) => `Foto ${p.position}`).join(', ')}: pode não mostrar este ângulo na foto original. Confira antes de publicar e refaça se preciso.
+          </span>
         </div>
       )}
       <div className="grid">
@@ -98,21 +130,37 @@ export function ReviewKit({ title, originalUrl, photos, generate, setWarning, re
             error={errors[photo.position] ?? null}
             onRedo={() => void run(photo.position)}
             onToggleWarning={() => void setWarning(photo.position, !photo.warn).then(refresh)}
+            onOpen={() => setOpenPos(photo.position)}
           />
         ))}
       </div>
       <div className="cta">
-        <span className="note">Cada refação gera só aquela foto.</span>
+        <span className="note">Cada refação gera só aquela foto. Clique numa foto para comparar com a original.</span>
         {allDone ? (
-          <a className="btn" href={downloadHref}>
+          <a className="btn lg" href={downloadHref}>
+            <Icon name="download" />
             Baixar kit
           </a>
         ) : (
-          <button type="button" className="btn" disabled>
+          <button type="button" className="btn lg" disabled>
+            <Icon name="download" />
             Baixar kit
           </button>
         )}
       </div>
+      <CompareLightbox
+        photo={opened}
+        originalUrl={originalUrl}
+        busy={opened ? inFlight.has(opened.position) : false}
+        onClose={closeViewer}
+        onPrev={openIndex > 0 ? () => setOpenPos(viewable[openIndex - 1].position) : null}
+        onNext={openIndex >= 0 && openIndex < viewable.length - 1 ? () => setOpenPos(viewable[openIndex + 1].position) : null}
+        onRedo={() => {
+          if (!opened) return;
+          void run(opened.position);
+          setOpenPos(null);
+        }}
+      />
     </div>
   );
 }

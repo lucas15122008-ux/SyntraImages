@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { KitScreen } from '@/components/kit/KitScreen';
+import { KitSteps } from '@/components/layout/KitSteps';
 import type { ReviewPhoto } from '@/components/kit/PhotoCard';
 import { isReadyForDownload } from '@/lib/kit/download';
 import { isStaleGeneration } from '@/lib/kit/limits';
@@ -9,6 +10,7 @@ import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
 const SIGNED_URL_SECONDS = 4 * 3600;
 
 export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Revisar fotos' };
 
 export default async function KitPage({ params }: { params: Promise<{ kitId: string }> }) {
   const { kitId } = await params;
@@ -38,10 +40,17 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
     })),
   );
 
+  const allReady = photos.length > 0 && photos.every((p) => isReadyForDownload(p.status, !!p.url));
   const car = [kit.car_model, kit.car_year].filter(Boolean).join(' ');
   return (
     <>
-      <h1>Revisar fotos</h1>
+      <div className="page-head">
+        <div>
+          <h1>Revisar fotos</h1>
+          <p className="sub">Confira cada foto ao lado da original. Refaça só as que não servem e baixe o kit.</p>
+        </div>
+        <KitSteps current={allReady ? 3 : 2} />
+      </div>
       <KitScreen kitId={kitId} title={car ? `${kit.product_name} · ${car}` : kit.product_name} originalUrl={originalUrl} photos={photos} />
     </>
   );

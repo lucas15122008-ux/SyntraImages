@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useMotionPresets } from '@/components/motion/presets';
+import { Icon } from '@/components/ui/Icon';
 import { TYPE_LABELS } from '@/lib/kit/labels';
 import type { PhotoType } from '@/lib/kit/types';
 
@@ -30,15 +31,17 @@ type Props = {
   error: string | null;
   onRedo: () => void;
   onToggleWarning: () => void;
+  /** Abre a comparação em tela cheia com a foto original. */
+  onOpen?: () => void;
 };
 
-function labelOf(p: ReviewPhoto): string {
+export function labelOf(p: ReviewPhoto): string {
   if (p.kind === 'cover') return 'Capa';
   if (p.kind === 'fixed') return 'Loja';
   return p.type ? TYPE_LABELS[p.type] : 'Foto';
 }
 
-export function PhotoCard({ photo, originalUrl, busy, error, onRedo, onToggleWarning }: Props) {
+export function PhotoCard({ photo, originalUrl, busy, error, onRedo, onToggleWarning, onOpen }: Props) {
   const { photoArrive } = useMotionPresets();
   // Mantém a URL do primeiro render de cada arquivo: refreshes geram URLs novas para a mesma imagem.
   const [shown, setShown] = useState({ version: photo.version, url: photo.url });
@@ -51,20 +54,39 @@ export function PhotoCard({ photo, originalUrl, busy, error, onRedo, onToggleWar
   const isFixed = photo.kind === 'fixed';
   const bad = photo.warn || failed || stuck || !!error;
 
+  const canOpen = !!onOpen && !!shown.url && !generating;
+
   return (
     <div className="card" data-testid={`photo-${photo.position}`} data-status={generating ? 'generating' : photo.status}>
       <div className={`img${bad ? ' bad' : ''}`}>
         {shown.url && !generating ? (
           <motion.img key={shown.version ?? shown.url} src={shown.url} alt={`Foto ${photo.position}`} variants={photoArrive} initial="hidden" animate="visible" />
         ) : generating ? (
-          <span className="spinner-label" aria-live="polite">
-            <span className="spinner" aria-hidden="true" />
-            Gerando…
-          </span>
+          <>
+            <span className="shimmer" aria-hidden="true" />
+            <span className="spinner-label" aria-live="polite">
+              <span className="spinner" aria-hidden="true" />
+              Gerando…
+            </span>
+          </>
         ) : photo.status === 'pending' ? (
-          <span>Na fila</span>
+          <span className="queued">
+            <Icon name="clock" size={20} />
+            Na fila
+          </span>
         ) : (
-          <span>Sem imagem</span>
+          <span className="queued">
+            <Icon name="image" size={20} />
+            Sem imagem
+          </span>
+        )}
+        {canOpen && (
+          <>
+            <button type="button" className="zoom" aria-label={isFixed ? `Ampliar foto ${photo.position}` : `Comparar foto ${photo.position} com a original`} onClick={onOpen} />
+            <span className="zoom-hint" aria-hidden="true">
+              <Icon name="zoom" size={16} />
+            </span>
+          </>
         )}
         {!isFixed && (
           // eslint-disable-next-line @next/next/no-img-element -- URL assinada do storage
@@ -73,9 +95,14 @@ export function PhotoCard({ photo, originalUrl, busy, error, onRedo, onToggleWar
       </div>
       <div className="info">
         <strong>
-          {photo.position} · {labelOf(photo)}
+          <span className="pos">{String(photo.position).padStart(2, '0')}</span>
+          {labelOf(photo)}
         </strong>
-        {photo.warn && <span className="pill warn">pode não mostrar este ângulo</span>}
+        {photo.warn && (
+          <span className="pill warn">
+            <Icon name="alert" size={12} /> pode não mostrar este ângulo
+          </span>
+        )}
         {stuck && (
           <p className="field-error" role="alert">
             A geração travou (o servidor pode ter caído). Clique em Refazer.
@@ -91,10 +118,11 @@ export function PhotoCard({ photo, originalUrl, busy, error, onRedo, onToggleWar
             <span className="pill free">fixa</span>
           ) : (
             <>
-              <span className={`pill${photo.status === 'done' && !failed ? '' : ' gen'}`}>
+              <span className={`pill ${generating || photo.status === 'pending' ? 'gen' : stuck || failed ? 'bad' : 'ok'}`}>
                 {generating ? 'IA' : stuck ? 'travou' : failed ? 'falhou' : photo.status === 'pending' ? 'na fila' : photo.attempts > 1 ? `ok · ${photo.attempts}ª` : 'ok'}
               </span>
               <button type="button" className="btn ghost" disabled={generating} onClick={onRedo}>
+                <Icon name="redo" size={14} />
                 {busy ? 'Refazendo…' : 'Refazer'}
               </button>
             </>
@@ -102,6 +130,7 @@ export function PhotoCard({ photo, originalUrl, busy, error, onRedo, onToggleWar
         </div>
         {!isFixed && (
           <button type="button" className="link-btn" onClick={onToggleWarning}>
+            <Icon name="flag" size={13} />
             {photo.warn ? 'Tirar aviso' : 'Marcar aviso'}
           </button>
         )}

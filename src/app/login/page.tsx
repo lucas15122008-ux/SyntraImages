@@ -7,8 +7,8 @@ export default function LoginPage() {
   const [error, formAction, pending] = useActionState(signIn, null);
 
   return (
-    <main style={{ display: 'grid', placeItems: 'center', minHeight: '100dvh', padding: 16 }}>
-      <form action={formAction} style={{ display: 'grid', gap: 12, width: 'min(360px, 100%)' }}>
+    <main className="auth-card">
+      <form action={formAction} className="panel">
         <h1>Entrar no SyntraImages</h1>
         <label>
           E-mail
@@ -18,11 +18,15 @@ export default function LoginPage() {
           Senha
           <input name="password" type="password" autoComplete="current-password" required />
         </label>
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={pending}>
+        {error && (
+          <p className="field-error" role="alert">
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn" disabled={pending}>
           {pending ? 'Entrando…' : 'Entrar'}
         </button>
-        <p>O acesso é só por convite. Fale com o administrador para receber o seu.</p>
+        <p className="note">O acesso é só por convite. Fale com o administrador para receber o seu.</p>
       </form>
     </main>
   );

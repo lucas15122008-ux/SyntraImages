@@ -1,5 +1,6 @@
 'use server';
 
+import { getSupabaseServer } from '@/lib/supabase/server';
 import { createKit } from './generate';
 import type { KitConfig } from './types';
 
@@ -22,4 +23,12 @@ export async function createKitAction(formData: FormData): Promise<CreateKitResu
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Não foi possível criar o kit.' };
   }
+}
+
+/** Liga ou desliga o aviso de "ângulo pode não existir" em uma foto (qualquer foto pode ser marcada). */
+export async function setPhotoWarning(kitId: string, position: number, on: boolean): Promise<void> {
+  const sb = await getSupabaseServer();
+  const patch = on ? { warn_missing_angle: true, warn_dismissed: false } : { warn_missing_angle: false, warn_dismissed: true };
+  const { error } = await sb.from('kit_photos').update(patch).eq('kit_id', kitId).eq('position', position);
+  if (error) throw new Error('Não foi possível atualizar o aviso da foto.');
 }

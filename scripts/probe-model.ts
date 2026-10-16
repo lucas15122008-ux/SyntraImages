@@ -1,5 +1,5 @@
 /**
- * Sonda o modelo de imagem no OpenRouter e imprime o que ele suporta.
+ * Sonda o modelo de imagem no OpenRouter (endpoint /api/v1/images) e imprime o que ele suporta.
  *
  * Uso (Node 24, sem dependências):
  *   OPENROUTER_API_KEY=... node scripts/probe-model.ts <foto1> [foto2]
@@ -54,31 +54,32 @@ function dimensions(buf: Buffer): string {
 
 async function metadata() {
   console.log(`\n== Metadados de ${model} ==`);
-  const res = await fetch(`${BASE}/models`, { headers: { Authorization: `Bearer ${apiKey}` } });
-  const json = (await res.json()) as { data?: Array<Record<string, any>> };
+  const headers = { Authorization: `Bearer ${apiKey}` };
+  const list = await fetch(`${BASE}/images/models`, { headers });
+  const json = (await list.json()) as { data?: Array<Record<string, any>> };
   const entry = json.data?.find((m) => m.id === model);
   if (!entry) {
-    console.log('Slug NÃO encontrado na lista de modelos. Candidatos parecidos:');
+    console.log('Slug NÃO encontrado em /images/models. Candidatos:');
     console.log((json.data ?? []).filter((m) => /muse/i.test(m.id)).map((m) => m.id));
     return;
   }
-  console.log(JSON.stringify({ id: entry.id, name: entry.name, architecture: entry.architecture, pricing: entry.pricing, context_length: entry.context_length, supported_parameters: entry.supported_parameters }, null, 2));
+  console.log(JSON.stringify(entry, null, 2));
+  const ep = await fetch(`${BASE}/images/models/${model}/endpoints`, { headers });
+  console.log('endpoints:', JSON.stringify(await ep.json(), null, 2));
 }
 
-async function generate(label: string, images: string[], prompt: string) {
+async function generate(label: string, images: string[], prompt: string, extra: Record<string, unknown> = {}) {
   console.log(`\n== ${label} (${images.length} imagem(ns) de entrada) ==`);
   const body = {
     model,
-    modalities: ['image', 'text'],
-    messages: [
-      {
-        role: 'user',
-        content: [{ type: 'text', text: prompt }, ...images.map((url) => ({ type: 'image_url', image_url: { url } }))],
-      },
-    ],
+    prompt,
+    n: 1,
+    input_references: images.map((url) => ({ type: 'image_url', image_url: { url } })),
+    ...extra,
   };
+  console.log('extra:', JSON.stringify(extra));
   const t0 = Date.now();
-  const res = await fetch(`${BASE}/chat/completions`, {
+  const res = await fetch(`${BASE}/images`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -89,26 +90,25 @@ async function generate(label: string, images: string[], prompt: string) {
   let json: any;
   try { json = JSON.parse(text); } catch { console.log(text.slice(0, 800)); return; }
   if (!res.ok) { console.log(JSON.stringify(json, null, 2).slice(0, 1500)); return; }
-  const msg = json.choices?.[0]?.message;
-  const urls: string[] = (msg?.images ?? []).map((i: any) => i.image_url?.url).filter(Boolean);
-  console.log('texto:', typeof msg?.content === 'string' ? msg.content.slice(0, 300) : msg?.content);
   console.log('usage:', JSON.stringify(json.usage));
   mkdirSync('scripts/out', { recursive: true });
-  urls.forEach((u, idx) => {
-    const m = u.match(/^data:(image\/[a-z+]+);base64,(.*)$/);
-    if (!m) { console.log('imagem em URL:', u.slice(0, 120)); return; }
-    const buf = Buffer.from(m[2], 'base64');
-    const file = `scripts/out/${label.replace(/\W+/g, '-')}-${idx}.${m[1].split('/')[1]}`;
+  const items: Array<{ b64_json?: string; url?: string; media_type?: string }> = json.data ?? [];
+  items.forEach((it, idx) => {
+    if (!it.b64_json) { console.log('item sem b64_json:', JSON.stringify(it).slice(0, 200)); return; }
+    const buf = Buffer.from(it.b64_json, 'base64');
+    const ext = (it.media_type ?? 'image/png').split('/')[1];
+    const file = `scripts/out/${label.replace(/\W+/g, '-')}-${idx}.${ext}`;
     writeFileSync(file, buf);
-    console.log(`imagem salva: ${file} — ${m[1]}, ${buf.length} bytes, ${dimensions(buf)}`);
+    console.log(`imagem salva: ${file} — ${it.media_type}, ${buf.length} bytes, ${dimensions(buf)}`);
   });
-  if (!urls.length) console.log('Nenhuma imagem na resposta:', JSON.stringify(json).slice(0, 800));
+  if (!items.length) console.log('Nenhuma imagem na resposta:', JSON.stringify(json).slice(0, 800));
 }
 
 const PROMPT_1 = 'Foto de estúdio profissional desta peça automotiva em fundo branco, quadrada, peça centralizada, idêntica à da foto de referência (mesmo formato, cor, furos e marcações). Sem texto nem marca d\'água.';
 const PROMPT_2 = 'Use a primeira imagem como a peça (deve ficar idêntica) e a segunda como referência de cena/estilo. Gere uma foto quadrada de e-commerce da peça nessa cena. Sem texto nem marca d\'água.';
 
 await metadata();
-await generate('uma-imagem', [toDataUrl(photo1)], PROMPT_1);
-if (photo2) await generate('duas-imagens', [toDataUrl(photo1), toDataUrl(photo2)], PROMPT_2);
-else await generate('duas-imagens-mesma-foto', [toDataUrl(photo1), toDataUrl(photo1)], PROMPT_2);
+await generate('uma-imagem', [toDataUrl(photo1)], PROMPT_1, { aspect_ratio: '1:1' });
+await generate('uma-imagem-sem-extras', [toDataUrl(photo1)], PROMPT_1);
+if (photo2) await generate('duas-imagens', [toDataUrl(photo1), toDataUrl(photo2)], PROMPT_2, { aspect_ratio: '1:1' });
+else await generate('duas-imagens-mesma-foto', [toDataUrl(photo1), toDataUrl(photo1)], PROMPT_2, { aspect_ratio: '1:1' });

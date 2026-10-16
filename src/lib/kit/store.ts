@@ -1,4 +1,5 @@
 import 'server-only';
+import { getStoreAssets } from '@/lib/store/actions';
 import { getSupabaseAdmin, getSupabaseServer, requireUser } from '@/lib/supabase/server';
 import type { KitConfig, PhotoType } from './types';
 
@@ -74,12 +75,7 @@ export async function getKitStore(): Promise<KitStore> {
   const store: KitStore = {
     currentUserId: async () => user.id,
 
-    async getStoreAssets() {
-      const { data, error } = await sb.from('store_assets').select('slot, storage_path');
-      if (error) fail('Falha ao ler as artes da loja', error);
-      const find = (slot: 0 | 1) => (data ?? []).find((a) => a.slot === slot) ?? null;
-      return [find(0), find(1)] as [StoreAsset | null, StoreAsset | null];
-    },
+    getStoreAssets: () => getStoreAssets(),
 
     async putFile(bucket, path, bytes, mime) {
       const { error } = await sb.storage.from(bucket).upload(path, bytes, { contentType: mime, upsert: false });

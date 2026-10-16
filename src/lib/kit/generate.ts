@@ -1,34 +1,13 @@
 import 'server-only';
 import { GenerationError, generateImage, type GeneratedImage, type ImageInput } from '@/lib/openrouter/client';
+import { IMAGE_EXT as EXT, readImage, sniffImageMime, type ImageMime as Mime } from './image';
 import { buildPrompt } from './prompts';
 import { planKit, validateConfig } from './plan';
 import { getKitStore, type KitStore } from './store';
 import type { KitConfig } from './types';
 
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const STALE_GENERATION_MS = 5 * 60_000;
 const DEFAULT_DAILY_LIMIT = 200;
-
-type Mime = 'image/jpeg' | 'image/png' | 'image/webp';
-const EXT: Record<Mime, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-
-/** Descobre o formato pelos primeiros bytes; o tipo declarado pelo navegador não é confiável. */
-export function sniffImageMime(b: Uint8Array): Mime | null {
-  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
-  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 && b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a) return 'image/png';
-  const tag = (from: number) => String.fromCharCode(...b.slice(from, from + 4));
-  if (b.length >= 12 && tag(0) === 'RIFF' && tag(8) === 'WEBP') return 'image/webp';
-  return null;
-}
-
-async function readImage(file: File, label: string): Promise<{ bytes: Uint8Array; mime: Mime }> {
-  if (file.size === 0) throw new Error(`O arquivo de ${label} está vazio.`);
-  if (file.size > MAX_IMAGE_BYTES) throw new Error(`A ${label} passa de 10 MB. Reduza o tamanho e tente de novo.`);
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const mime = sniffImageMime(bytes);
-  if (!mime) throw new Error(`A ${label} precisa ser uma imagem JPEG, PNG ou WEBP.`);
-  return { bytes, mime };
-}
 
 /** Meia-noite de Brasília (UTC-3, sem horário de verão) do dia de `now`, como instante UTC. */
 export function startOfDayBR(now: Date): Date {

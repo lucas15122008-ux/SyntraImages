@@ -1,0 +1,10 @@
+# Configuração para o Supabase local (`supabase start`). No projeto hospedado,
+# desligue "Allow new users to sign up" em Authentication → Sign In / Providers.
+project_id = "syntraimages"
+
+[auth]
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true

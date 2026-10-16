@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
@@ -44,7 +44,10 @@ const denied = async (p: Promise<unknown>) => {
 beforeAll(async () => {
   db = new PGlite();
   await db.exec(SUPABASE_STUBS);
-  await db.exec(readFileSync(resolve(import.meta.dirname, '../migrations/0001_init.sql'), 'utf8'));
+  const dir = resolve(import.meta.dirname, '../migrations');
+  for (const name of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
+    await db.exec(readFileSync(resolve(dir, name), 'utf8'));
+  }
   await db.exec(`grant select, insert, update, delete on all tables in schema public, storage to authenticated;`);
   await db.exec(`insert into auth.users (id) values ('${ADMIN}'), ('${ALICE}'), ('${BOB}');`);
   await db.exec(`update public.profiles set role = 'admin' where id = '${ADMIN}';`);
@@ -160,5 +163,17 @@ describe('storage', () => {
     await as(ADMIN, () => db.query(`insert into storage.objects (bucket_id, name) values ('store', 'loja-1.jpg')`));
     const { rows } = await as(ALICE, () => db.query(`select name from storage.objects where bucket_id = 'store'`));
     expect(rows).toEqual([{ name: 'loja-1.jpg' }]);
+  });
+});
+
+describe('log de gerações', () => {
+  test('membro não lê nem grava; só a chave de serviço (superusuário aqui) enxerga', async () => {
+    await db.query(`insert into public.generation_log (user_id, kit_id, position) values ($1, null, 1)`, [ALICE]);
+    const seen = await as(ALICE, () => db.query(`select * from public.generation_log`));
+    expect(seen.rows).toHaveLength(0);
+    await denied(as(ALICE, () => db.query(`insert into public.generation_log (user_id) values ($1)`, [ALICE])));
+    await denied(as(ADMIN, () => db.query(`insert into public.generation_log (user_id) values ($1)`, [ADMIN])));
+    const all = await db.query(`select * from public.generation_log`);
+    expect(all.rows).toHaveLength(1);
   });
 });

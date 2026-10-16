@@ -101,6 +101,10 @@ describe('validateConfig', () => {
     expect(validateConfig(base({ total: 17 }))).toHaveLength(1);
   });
 
+  test('tipo de foto desconhecido é recusado (config vem do navegador)', () => {
+    expect(validateConfig(base({ types: ['white_front', 'foto_inventada' as PhotoType] }))).toEqual([expect.stringMatching(/tipo de foto/i)]);
+  });
+
   test('total precisa ser inteiro', () => {
     expect(validateConfig(base({ total: 7.5 }))).toHaveLength(1);
     expect(validateConfig(base({ total: Number.NaN }))).toHaveLength(1);

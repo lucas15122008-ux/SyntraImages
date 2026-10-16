@@ -8,7 +8,7 @@ const STORE_PHOTOS = 2;
 /** Tipos que mostram um lado que a foto original provavelmente não tem. */
 export const ANGLE_WARNING_TYPES: ReadonlySet<PhotoType> = new Set<PhotoType>(['white_back', 'use_installed']);
 
-const DEFAULT_ORDER: readonly PhotoType[] = [
+export const PHOTO_TYPES: readonly PhotoType[] = [
   'white_front',
   'white_side',
   'white_detail',
@@ -23,7 +23,7 @@ export function minTotal(includeStore: boolean): number {
 }
 
 export function defaultMiddleTypes(count: number): PhotoType[] {
-  return Array.from({ length: Math.max(0, count) }, (_, i) => DEFAULT_ORDER[i % DEFAULT_ORDER.length]);
+  return Array.from({ length: Math.max(0, count) }, (_, i) => PHOTO_TYPES[i % PHOTO_TYPES.length]);
 }
 
 function middleCount(c: Pick<KitConfig, 'total' | 'includeStore'>): number {
@@ -36,6 +36,7 @@ export function validateConfig(c: KitConfig): string[] {
     if (!c.car?.model.trim()) errors.push('Informe o modelo do carro para a capa com carro.');
     if (!c.car?.year.trim()) errors.push('Informe o ano do carro para a capa com carro.');
   }
+  if (c.types.some((t) => !PHOTO_TYPES.includes(t))) errors.push('Há um tipo de foto desconhecido na configuração.');
   const min = minTotal(c.includeStore);
   if (!Number.isInteger(c.total)) {
     errors.push('A quantidade de fotos precisa ser um número inteiro.');

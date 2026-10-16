@@ -9,6 +9,8 @@ const photo = (position: number, over: Partial<ReviewPhoto> = {}): ReviewPhoto =
   type: 'white_front',
   status: 'done',
   url: `https://img/${position}.jpg`,
+  version: `p${position}-1`,
+  stale: false,
   warn: false,
   error: null,
   attempts: 1,
@@ -137,5 +139,42 @@ describe('ReviewKit', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test('foto presa em generating há mais de 5 minutos pode ser refeita', async () => {
+    const { generate } = setup([photo(1), photo(2, { status: 'generating', url: null, stale: true })], { autoStart: false });
+    expect(within(card(2)).getByRole('alert')).toHaveTextContent(/travou/i);
+    const btn = within(card(2)).getByRole('button', { name: 'Refazer' });
+    expect(btn).toBeEnabled();
+    fireEvent.click(btn);
+    await waitFor(() => expect(generate).toHaveBeenCalledWith(2));
+  });
+
+  test('foto presa não faz a tela dar refresh a cada 5 segundos para sempre', async () => {
+    vi.useFakeTimers();
+    try {
+      const { refresh } = setup([photo(2, { status: 'generating', url: null, stale: true })], { autoStart: false });
+      await act(async () => void vi.advanceTimersByTime(12000));
+      expect(refresh).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('refação que falhou mantém a foto anterior na tela, com o erro e o botão de refazer', () => {
+    setup([photo(1), photo(2, { status: 'failed', error: 'O serviço de imagens falhou (HTTP 503).', version: 'p2-1' })]);
+    expect(within(card(2)).getByAltText('Foto 2')).toHaveAttribute('src', 'https://img/2.jpg');
+    expect(within(card(2)).getByText(/HTTP 503/)).toBeInTheDocument();
+    expect(within(card(2)).getByRole('button', { name: 'Refazer' })).toBeEnabled();
+  });
+
+  test('com uma refação falhada que ainda tem foto anterior, o kit continua baixável', () => {
+    setup([photo(1), photo(2, { status: 'failed', error: 'x' })]);
+    expect(screen.getByRole('link', { name: 'Baixar kit' })).toBeInTheDocument();
+  });
+
+  test('foto que nunca foi gerada (failed sem imagem) bloqueia o download', () => {
+    setup([photo(1), photo(2, { status: 'failed', url: null, version: null, error: 'x' })]);
+    expect(screen.getByRole('button', { name: 'Baixar kit' })).toBeDisabled();
   });
 });

@@ -1,8 +1,14 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
+import { prepareImage } from '@/lib/kit/client-image';
 import type { KitConfig } from '@/lib/kit/types';
 import { BuildKit } from './BuildKit';
+
+vi.mock('@/lib/kit/client-image', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/kit/client-image')>()),
+  prepareImage: vi.fn(async (file: File) => file),
+}));
 
 const photo = () => new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1])], 'peca.jpg', { type: 'image/jpeg' });
 
@@ -218,5 +224,27 @@ describe('BuildKit: modelos de kit', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Salvar como modelo' }));
     expect(onSaveTemplate).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent(/nome do modelo/i);
+  });
+
+  test('com uma imagem, ela recebe todo o orçamento de envio (cabe nos 4,5 MB da Vercel)', async () => {
+    const prepare = vi.mocked(prepareImage);
+    prepare.mockClear();
+    const { onCreated } = setup();
+    fillValid();
+    fireEvent.click(screen.getByRole('button', { name: 'Gerar fotos' }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(prepare.mock.calls.map((c) => c[1])).toEqual([3_200_000]);
+  });
+
+  test('com referência extra, o orçamento de envio é dividido entre as duas imagens', async () => {
+    const prepare = vi.mocked(prepareImage);
+    prepare.mockClear();
+    const { onCreated } = setup();
+    fillValid();
+    fireEvent.click(screen.getByRole('switch', { name: 'Usar foto de referência' }));
+    fireEvent.change(screen.getByLabelText('Imagem de referência'), { target: { files: [photo()] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Gerar fotos' }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(prepare.mock.calls.map((c) => c[1])).toEqual([1_600_000, 1_600_000]);
   });
 });

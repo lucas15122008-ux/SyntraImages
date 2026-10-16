@@ -1,12 +1,12 @@
 import 'server-only';
 import { GenerationError, generateImage, type GeneratedImage, type ImageInput } from '@/lib/openrouter/client';
+import { STALE_GENERATION_MS } from './limits';
 import { IMAGE_EXT as EXT, readImage, sniffImageMime, type ImageMime as Mime } from './image';
 import { buildPrompt } from './prompts';
 import { planKit, validateConfig } from './plan';
 import { getKitStore, type KitStore } from './store';
 import type { KitConfig } from './types';
 
-const STALE_GENERATION_MS = 5 * 60_000;
 const DEFAULT_DAILY_LIMIT = 200;
 
 /** Meia-noite de Brasília (UTC-3, sem horário de verão) do dia de `now`, como instante UTC. */
@@ -129,9 +129,9 @@ export async function generatePhoto(
 
   const claimed = await store.claimPhoto(kitId, position, new Date(Date.now() - STALE_GENERATION_MS));
   if (!claimed) return; // outra geração desta foto já está em andamento
-  await store.logGeneration(kitId, position);
 
   try {
+    await store.logGeneration(kitId, position);
     const images: ImageInput[] = [{ bytes: await store.getFile('originals', kit.original_path), mime: '' }];
     images[0].mime = sniffImageMime(images[0].bytes) ?? 'image/jpeg';
     const useExtra = kit.config.useExtraReference && !!kit.extra_reference_path;

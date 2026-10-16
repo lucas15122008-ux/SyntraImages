@@ -5,7 +5,7 @@ import type { KitRow, KitStore, PhotoRow, StoreAsset } from './store';
 import type { KitConfig } from './types';
 
 // ───────── Loja falsa em memória (reproduz a regra de reivindicação atômica) ─────────
-function fakeStore(over: { assets?: [StoreAsset | null, StoreAsset | null]; failInsertPhotos?: boolean } = {}) {
+function fakeStore(over: { assets?: [StoreAsset | null, StoreAsset | null]; failInsertPhotos?: boolean; failLog?: boolean } = {}) {
   const files = new Map<string, Uint8Array>();
   const kits = new Map<string, KitRow>();
   let photos: PhotoRow[] = [];
@@ -64,6 +64,7 @@ function fakeStore(over: { assets?: [StoreAsset | null, StoreAsset | null]; fail
     },
     countGenerationsSince: async () => logToday + log.length,
     logGeneration: async (kitId, position) => {
+      if (over.failLog) throw new Error('falha ao registrar');
       log.push({ kitId, position });
     },
     updatePhoto: async (id, patch) => {
@@ -355,6 +356,17 @@ describe('generatePhoto', () => {
     await generatePhoto(kitId, 2, { store: f.store, generate });
     expect(generate).toHaveBeenCalledTimes(1);
     expect(row.status).toBe('done');
+  });
+
+  test('se registrar a geração falhar, a foto fica failed e não presa em generating', async () => {
+    const f = fakeStore({ failLog: true });
+    const kitId = await kitWith(f);
+    await expect(generatePhoto(kitId, 2, { store: f.store, generate })).resolves.toBeUndefined();
+    expect(generate).not.toHaveBeenCalled();
+    const row = f.photos().find((p) => p.position === 2)!;
+    expect(row.status).toBe('failed');
+    expect(row.error).toMatch(/falhou/i);
+    expect(row.generating_since).toBeNull();
   });
 
   test('foto fixa da loja não é gerada', async () => {

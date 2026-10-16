@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isReadyForDownload } from '@/lib/kit/download';
 import { PhotoCard, type ReviewPhoto } from './PhotoCard';
 
 export type { ReviewPhoto } from './PhotoCard';
@@ -66,14 +67,14 @@ export function ReviewKit({ title, originalUrl, photos, generate, setWarning, re
   }, []);
 
   // Fotos que outra aba ou uma visita anterior deixou em geração: acompanha pelo servidor.
-  const watching = photos.some((p) => p.status === 'generating' && !inFlight.has(p.position));
+  const watching = photos.some((p) => p.status === 'generating' && !p.stale && !inFlight.has(p.position));
   useEffect(() => {
     if (!watching) return;
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
   }, [watching, refresh]);
 
-  const allDone = photos.every((p) => p.status === 'done' && !inFlight.has(p.position));
+  const allDone = photos.every((p) => isReadyForDownload(p.status, !!p.url) && !inFlight.has(p.position));
   const warned = photos.filter((p) => p.warn);
 
   return (

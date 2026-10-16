@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getKitStore } from '@/lib/kit/store';
-import { sniffImageMime, IMAGE_EXT } from '@/lib/kit/image';
+import { isReadyForDownload } from '@/lib/kit/download';
+import { getDownloadConfig, normalizeImage } from '@/lib/kit/normalize';
 import { buildZip, slugName } from '@/lib/kit/zip';
 import { getSupabaseServer } from '@/lib/supabase/server';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function GET(_req: Request, { params }: { params: Promise<{ kitId: string }> }) {
   const { kitId } = await params;
@@ -18,17 +19,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ kitId: 
 
   const { data: rows, error } = await sb.from('kit_photos').select('position, kind, type, status, storage_path').eq('kit_id', kitId).order('position');
   if (error || !rows?.length) return NextResponse.json({ error: 'Não foi possível ler as fotos do kit.' }, { status: 500 });
-  if (rows.some((r) => r.status !== 'done' || !r.storage_path)) {
+  if (rows.some((r) => !r.storage_path || !isReadyForDownload(r.status, true))) {
     return NextResponse.json({ error: 'Ainda há fotos sendo geradas ou com falha. Termine o kit antes de baixar.' }, { status: 409 });
   }
 
   const product = slugName(kit.product_name);
+  const config = getDownloadConfig();
   const photos = await Promise.all(
     rows.map(async (r) => {
-      const bytes = await store.getFile(r.kind === 'fixed' ? 'store' : 'generated', r.storage_path!);
-      const mime = sniffImageMime(bytes);
+      const normalized = await normalizeImage(await store.getFile(r.kind === 'fixed' ? 'store' : 'generated', r.storage_path!), config);
       const name = r.kind === 'cover' ? `${product}-capa` : r.kind === 'fixed' ? `${product}-loja` : `${product}-${r.type ?? 'foto'}`;
-      return { position: r.position as number, name, bytes, ext: mime ? IMAGE_EXT[mime] : 'jpg' };
+      return { position: r.position as number, name, bytes: normalized.bytes, ext: normalized.ext };
     }),
   );
 

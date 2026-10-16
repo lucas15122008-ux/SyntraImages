@@ -72,6 +72,7 @@ No computador, em `.env.local`; na hospedagem (por exemplo Vercel, em **Settings
 | `NEXT_PUBLIC_SUPABASE_URL` | Project URL do Supabase. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anon (pública) do Supabase. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Chave de serviço do Supabase. **Secreta, só no servidor.** |
+| `DOWNLOAD_IMAGE_SIZE` / `DOWNLOAD_IMAGE_FORMAT` | Tamanho (600 a 3000 px) e formato (`jpg` ou `png`) de todas as fotos do zip, inclusive as artes da loja, que são ajustadas para quadrado sem corte e fundo branco. Padrão: 1600 e `jpg`. |
 | `DAILY_GENERATION_LIMIT` | Teto de fotos geradas por dia, somando a equipe toda (dia de Brasília). Padrão 200 (cerca de US$ 2). |
 
 O arquivo `.env.local` não vai para o git. Se uma chave vazar, gere outra no painel do serviço.
@@ -87,6 +88,10 @@ O arquivo `.env.local` não vai para o git. Se uma chave vazar, gere outra no pa
 
 Entre como administrador, abra **Equipe** e informe o e-mail de cada pessoa. Ela recebe o convite, clica no link e cria a própria senha.
 
+### 8b. Esqueci a senha / convite que não funcionou
+
+Não há tela de recuperação de senha. Com a equipe pequena, o administrador resolve no painel do Supabase: **Authentication → Users**, abra a pessoa e use **Send password recovery** (ou apague a conta e convide de novo pela tela Equipe). Para o link de recuperação funcionar, em **Email Templates → Reset Password** use `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`.
+
 ### 9. Subir as artes da loja
 
 Entre como administrador, abra **Fotos da loja** e envie as duas artes (JPEG, PNG ou WEBP, até 10 MB). Elas entram no fim dos kits que tiverem a loja ligada, sem custo de geração. Sem as duas artes, o app não deixa criar kit com loja ligada. Trocar uma arte não altera os kits já criados.
@@ -96,14 +101,14 @@ Entre como administrador, abra **Fotos da loja** e envie as duas artes (JPEG, PN
 1. **Novo kit:** envie a foto da peça, o nome, o carro (modelo e ano) e escolha a quantidade (de 2 a 16, contando a capa e as fotos da loja), o tipo de cada foto do meio, capa comum ou com carro, referência extra e loja. É possível salvar a configuração como **modelo de kit** para a equipe (o carro não é salvo no modelo).
 2. As fotos são geradas sozinhas, até 3 ao mesmo tempo. Na **revisão**, a foto original aparece ao lado de cada foto gerada. Fotos de tipos que a foto original provavelmente não mostra (ângulo de trás, peça instalada) saem com aviso; qualquer foto pode ganhar ou perder o aviso.
 3. Refaça só as fotos ruins com **Refazer**: cada refação gera apenas aquela foto.
-4. **Baixar kit** entrega um zip com `NN-nome.jpg` na ordem do kit.
+4. **Baixar kit** entrega um zip com `NN-nome.jpg` na ordem do kit, todas as fotos no mesmo tamanho e formato (veja `DOWNLOAD_IMAGE_SIZE`). Se uma refação falhar, o kit continua baixável com a foto anterior daquela posição.
 
 ## Se a geração falhar
 
 - **Uma foto aparece como "falhou":** só aquela foto falhou. Veja a mensagem no card e clique em **Refazer**. Falhas passageiras do serviço (limite de requisições, instabilidade) já têm até 2 repetições automáticas antes de aparecer.
 - **"Limite diário atingido":** o teto de `DAILY_GENERATION_LIMIT` foi alcançado. Ele zera à meia-noite (Brasília); o administrador pode aumentar a variável.
 - **"O serviço de imagens recusou a chave" ou "Sem saldo":** confira a `OPENROUTER_API_KEY` e o saldo em openrouter.ai.
-- **Uma foto fica "gerando" por mais de 5 minutos:** o servidor caiu no meio. Clique em **Refazer**: a foto travada é reassumida automaticamente depois de 5 minutos.
+- **Uma foto fica "gerando" por mais de 5 minutos:** o servidor caiu no meio. A tela passa a mostrar "A geração travou" e libera o botão **Refazer**.
 - **A peça saiu diferente da real:** use **Refazer**. O texto gravado na peça (marcas, códigos) costuma sair com letras levemente distorcidas; confira sempre contra a foto original.
 
 ## Teste real com a IA (opcional, tem custo)

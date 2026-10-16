@@ -1,7 +1,12 @@
 import { notFound } from 'next/navigation';
 import { KitScreen } from '@/components/kit/KitScreen';
 import type { ReviewPhoto } from '@/components/kit/PhotoCard';
+import { isReadyForDownload } from '@/lib/kit/download';
+import { isStaleGeneration } from '@/lib/kit/limits';
 import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
+
+// Longa o bastante para a tela ficar aberta durante um kit inteiro sem as imagens expirarem.
+const SIGNED_URL_SECONDS = 4 * 3600;
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +20,7 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
   const { data: rows } = await sb.from('kit_photos').select('*').eq('kit_id', kitId).order('position');
 
   const sign = async (bucket: string, path: string | null) =>
-    path ? ((await sb.storage.from(bucket).createSignedUrl(path, 3600)).data?.signedUrl ?? null) : null;
+    path ? ((await sb.storage.from(bucket).createSignedUrl(path, SIGNED_URL_SECONDS)).data?.signedUrl ?? null) : null;
 
   const originalUrl = (await sign('originals', kit.original_path)) ?? '';
   const photos: ReviewPhoto[] = await Promise.all(
@@ -24,7 +29,9 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
       kind: r.kind,
       type: r.type,
       status: r.status,
-      url: r.status === 'done' ? await sign(r.kind === 'fixed' ? 'store' : 'generated', r.storage_path) : null,
+      url: isReadyForDownload(r.status, !!r.storage_path) ? await sign(r.kind === 'fixed' ? 'store' : 'generated', r.storage_path) : null,
+      version: r.storage_path,
+      stale: isStaleGeneration(r.status, r.generating_since),
       warn: r.warn_missing_angle && !r.warn_dismissed,
       error: r.error,
       attempts: r.attempts,

@@ -1,5 +1,7 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { useMotionPresets } from '@/components/motion/presets';
 import { TYPE_LABELS } from '@/lib/kit/labels';
 import type { PhotoType } from '@/lib/kit/types';
 
@@ -32,6 +34,7 @@ function labelOf(p: ReviewPhoto): string {
 }
 
 export function PhotoCard({ photo, originalUrl, busy, error, onRedo, onToggleWarning }: Props) {
+  const { photoArrive } = useMotionPresets();
   const generating = busy || photo.status === 'generating';
   const failed = !generating && photo.status === 'failed';
   const shownError = error ?? (failed ? photo.error : null);
@@ -42,8 +45,7 @@ export function PhotoCard({ photo, originalUrl, busy, error, onRedo, onToggleWar
     <div className="card" data-testid={`photo-${photo.position}`} data-status={generating ? 'generating' : photo.status}>
       <div className={`img${bad ? ' bad' : ''}`}>
         {photo.url && !generating ? (
-          // eslint-disable-next-line @next/next/no-img-element -- URL assinada do storage
-          <img src={photo.url} alt={`Foto ${photo.position}`} />
+          <motion.img key={photo.url} src={photo.url} alt={`Foto ${photo.position}`} variants={photoArrive} initial="hidden" animate="visible" />
         ) : generating ? (
           <span className="spinner-label" aria-live="polite">
             <span className="spinner" aria-hidden="true" />

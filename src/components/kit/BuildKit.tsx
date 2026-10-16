@@ -1,7 +1,9 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { useMotionPresets } from '@/components/motion/presets';
 import { isAllowedImage, prepareImage } from '@/lib/kit/client-image';
 import { STORE_LABELS, TYPE_LABELS } from '@/lib/kit/labels';
 import { MAX_TOTAL, PHOTO_TYPES, defaultMiddleTypes, minTotal, planKit, validateConfig } from '@/lib/kit/plan';
@@ -44,6 +46,7 @@ export function BuildKit({ templates, storeReady, onCreate, onCreated, onSaveTem
   const [templateName, setTemplateName] = useState('');
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
+  const { listItem } = useMotionPresets();
 
   const min = minTotal(includeStore);
   const config: KitConfig = useMemo(
@@ -312,7 +315,7 @@ export function BuildKit({ templates, storeReady, onCreate, onCreated, onSaveTem
         </div>
         <ol className="slots">
           {slots.map((slot) => (
-            <li key={slot.position} className="slot" data-kind={slot.kind}>
+            <motion.li key={slot.position} className="slot" data-kind={slot.kind} layout="position" variants={listItem} initial="hidden" animate="visible">
               <span className="n">{slot.position}</span>
               <span className={`t ${slot.kind === 'cover' ? 'cover' : slot.kind === 'fixed' ? 'fixed' : slot.type?.startsWith('use') ? 'use' : 'white'}`} />
               <div>
@@ -344,7 +347,7 @@ export function BuildKit({ templates, storeReady, onCreate, onCreated, onSaveTem
                 )}
               </div>
               <span className={`pill ${slot.kind === 'fixed' ? 'free' : 'gen'}`}>{slot.kind === 'fixed' ? 'sem custo' : 'IA'}</span>
-            </li>
+            </motion.li>
           ))}
         </ol>
         {errors.server && (

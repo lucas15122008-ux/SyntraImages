@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const PUBLIC_PATHS = ['/login'];
+const PUBLIC_PATHS = ['/login', '/auth/confirm'];
 
 /** Renova a sessão e leva visitantes sem login para /login. */
 export async function proxy(request: NextRequest) {

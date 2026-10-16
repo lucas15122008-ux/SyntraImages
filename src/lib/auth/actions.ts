@@ -33,3 +33,19 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   redirect('/login');
 }
+
+const MIN_PASSWORD = 8;
+
+/** Define a senha de quem acabou de aceitar o convite (ou recuperar a conta). */
+export async function setPassword(_prev: string | null, formData: FormData): Promise<string | null> {
+  const password = String(formData.get('password') ?? '');
+  const confirm = String(formData.get('confirm') ?? '');
+  if (password.length < MIN_PASSWORD) return `A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres.`;
+  if (password !== confirm) return 'As duas senhas não são iguais.';
+  const supabase = await getSupabaseServer();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return 'O link expirou. Peça um novo convite ao administrador.';
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return 'Não foi possível salvar a senha. Tente de novo.';
+  redirect('/');
+}

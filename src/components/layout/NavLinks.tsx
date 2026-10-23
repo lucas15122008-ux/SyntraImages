@@ -21,6 +21,7 @@ export function NavLinks({ isAdmin }: { isAdmin: boolean }) {
     { href: '/kits/novo', label: 'Novo kit', icon: 'plus' },
     { href: '/', label: 'Meus kits', icon: 'grid' },
     { href: '/configuracoes/loja', label: 'Fotos da loja', icon: 'store' },
+    { href: '/configuracoes/mercado-livre', label: 'Mercado Livre', icon: 'layers' },
     ...(isAdmin ? [{ href: '/configuracoes/equipe', label: 'Equipe', icon: 'users' } as Item] : []),
   ];
 

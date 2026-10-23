@@ -177,3 +177,30 @@ describe('log de gerações', () => {
     expect(all.rows).toHaveLength(1);
   });
 });
+
+describe('conexão com o Mercado Livre', () => {
+  test('ninguém pelo navegador lê ou grava os tokens, nem o admin', async () => {
+    await db.query(
+      `insert into public.ml_connection (ml_user_id, access_token_enc, refresh_token_enc, expires_at) values (1, 'a', 'r', now())`,
+    );
+    for (const user of [ALICE, ADMIN]) {
+      const seen = await as(user, () => db.query(`select * from public.ml_connection`));
+      expect(seen.rows).toHaveLength(0);
+      await denied(
+        as(user, () =>
+          db.query(`insert into public.ml_connection (id, ml_user_id, access_token_enc, refresh_token_enc, expires_at) values (1, 2, 'x', 'y', now())`),
+        ),
+      );
+    }
+    const updated = await as(ADMIN, () => db.query(`update public.ml_connection set nickname = 'hack'`));
+    expect(updated.affectedRows ?? 0).toBe(0);
+    const all = await db.query<{ nickname: string | null }>(`select nickname from public.ml_connection`);
+    expect(all.rows).toEqual([{ nickname: null }]);
+  });
+
+  test('só existe uma conexão (a da loja)', async () => {
+    await expect(
+      db.query(`insert into public.ml_connection (id, ml_user_id, access_token_enc, refresh_token_enc, expires_at) values (2, 1, 'a', 'r', now())`),
+    ).rejects.toThrow(/check/i);
+  });
+});

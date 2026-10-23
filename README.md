@@ -29,6 +29,7 @@ No **SQL Editor** do Supabase, rode, nesta ordem, o conteúdo de:
 
 1. `supabase/migrations/0001_init.sql` (tabelas, regras de acesso RLS e os três buckets privados `originals`, `generated` e `store`)
 2. `supabase/migrations/0002_generation_log.sql` (teto diário de gerações)
+3. `supabase/migrations/0003_ml_connection.sql` (conexão com a conta do Mercado Livre)
 
 (Com a CLI do Supabase: `supabase link` e `supabase db push`.)
 
@@ -73,6 +74,9 @@ No computador, em `.env.local`; na hospedagem (por exemplo Vercel, em **Settings
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anon (pública) do Supabase. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Chave de serviço do Supabase. **Secreta, só no servidor.** |
 | `DOWNLOAD_IMAGE_SIZE` / `DOWNLOAD_IMAGE_FORMAT` | Tamanho (600 a 3000 px) e formato (`jpg` ou `png`) de todas as fotos do zip, inclusive as artes da loja, que são ajustadas para quadrado sem corte e fundo branco. Padrão: 1600 e `jpg`. |
+| `ML_CLIENT_ID` / `ML_CLIENT_SECRET` | App ID e Secret Key do app criado no DevCenter do Mercado Livre. **Só no servidor.** |
+| `ML_TOKEN_KEY` | Chave que criptografa os tokens do ML no banco (mínimo 32 caracteres). Gere com `openssl rand -base64 48`. Se trocar, é preciso reconectar a conta. |
+| `ML_REDIRECT_URI` | Opcional. A URL de retorno cadastrada no app; se vazia, usa `<domínio>/api/ml/callback`. |
 | `DAILY_GENERATION_LIMIT` | Teto de fotos geradas por dia, somando a equipe toda (dia de Brasília). Padrão 200 (cerca de US$ 2). |
 
 O arquivo `.env.local` não vai para o git. Se uma chave vazar, gere outra no painel do serviço.
@@ -95,6 +99,12 @@ Não há tela de recuperação de senha. Com a equipe pequena, o administrador r
 ### 9. Subir as artes da loja
 
 Entre como administrador, abra **Fotos da loja** e envie as duas artes (JPEG, PNG ou WEBP, até 10 MB). Elas entram no fim dos kits que tiverem a loja ligada, sem custo de geração. Sem as duas artes, o app não deixa criar kit com loja ligada. Trocar uma arte não altera os kits já criados.
+
+### 10. Conectar o Mercado Livre
+
+1. No [DevCenter](https://developers.mercadolivre.com.br/devcenter), crie o app com a URL de retorno `https://<seu-domínio>/api/ml/callback` (a mesma do site na Vercel).
+2. Preencha `ML_CLIENT_ID`, `ML_CLIENT_SECRET` e `ML_TOKEN_KEY` na Vercel e faça um novo deploy.
+3. Entre como administrador, abra **Mercado Livre** e clique em **Conectar Mercado Livre**. Os tokens ficam criptografados no Supabase, numa tabela que o navegador não consegue ler, e são renovados sozinhos.
 
 ## Como usar
 

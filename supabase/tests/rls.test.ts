@@ -205,26 +205,3 @@ describe('conexão com o Mercado Livre', () => {
   });
 });
 
-describe('foto x venda', () => {
-  test('só o servidor lê e grava as trocas de foto', async () => {
-    await db.query(`insert into public.photo_switches (ml_item_id, switched_on) values ('MLB123', '2026-10-10')`);
-    for (const user of [ALICE, ADMIN]) {
-      const seen = await as(user, () => db.query(`select * from public.photo_switches`));
-      expect(seen.rows).toHaveLength(0);
-      await denied(as(user, () => db.query(`insert into public.photo_switches (ml_item_id, switched_on) values ('MLB9', '2026-10-11')`)));
-    }
-  });
-
-  test('código precisa ser MLB e não repete a mesma troca', async () => {
-    await expect(db.query(`insert into public.photo_switches (ml_item_id, switched_on) values ('123', '2026-10-10')`)).rejects.toThrow(/check/i);
-    await expect(db.query(`insert into public.photo_switches (ml_item_id, switched_on) values ('MLB123', '2026-10-10')`)).rejects.toThrow(/unique|duplicate/i);
-  });
-
-  test('apagar o kit não apaga a troca', async () => {
-    const { rows } = await newKit(ALICE);
-    await db.query(`insert into public.photo_switches (ml_item_id, switched_on, kit_id) values ('MLB55', '2026-10-12', $1)`, [rows[0].id]);
-    await db.query(`delete from public.kits where id = $1`, [rows[0].id]);
-    const left = await db.query<{ kit_id: string | null }>(`select kit_id from public.photo_switches where ml_item_id = 'MLB55'`);
-    expect(left.rows).toEqual([{ kit_id: null }]);
-  });
-});

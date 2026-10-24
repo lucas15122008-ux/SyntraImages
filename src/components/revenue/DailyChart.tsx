@@ -58,7 +58,7 @@ export function DailyChart({ data }: { data: Point[] }) {
                 d={`M${x},${y(0)} V${y(0) - h + r} Q${x},${y(0) - h} ${x + r},${y(0) - h} H${x + barW - r} Q${x + barW},${y(0) - h} ${x + barW},${y(0) - h + r} V${y(0)} Z`}
               />
             )}
-            {(i === data.length - 1 || (i % labelEvery === 0 && data.length - 1 - i >= labelEvery / 2 + 1)) && (
+            {(i === data.length - 1 || (i % labelEvery === 0 && data.length - 1 - i >= labelEvery)) && (
               <text className="axis" x={PAD.left + i * slot + slot / 2} y={H - 8} textAnchor="middle">
                 {dayLabel(d.day)}
               </text>

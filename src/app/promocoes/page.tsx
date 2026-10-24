@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { Delta, Kpi, PERIOD_LABEL } from '@/components/revenue/Kpi';
+import { StackedDailyChart } from '@/components/revenue/StackedDailyChart';
 import { PeriodTabs, ShareBar, Stagger, StaggerRow, StaggerRows } from '@/components/revenue/RevenueMotion';
-import { count, money } from '@/components/revenue/format';
+import { count, dayLabel, money } from '@/components/revenue/format';
 import { Icon } from '@/components/ui/Icon';
 import { getConnectionStatus, mlGet, MlNotConnectedError } from '@/lib/ml/connection';
-import { fetchPromotions, summarizeDiscounts, type DiscountSummary, type PromoOrder, type PromotionRow } from '@/lib/ml/promotions';
+import { fetchPromotions, splitPromotions, summarizeDiscounts, type DiscountSummary, type PromoOrder, type PromotionRow } from '@/lib/ml/promotions';
 import { fetchOrders, PERIODS, periodRanges, type Period, type SearchPage } from '@/lib/ml/revenue';
 import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
 
@@ -26,7 +27,7 @@ async function load(sellerId: number, days: Period): Promise<Data> {
       return null;
     }),
   ]);
-  return { now: summarizeDiscounts(a as PromoOrder[]), before: summarizeDiscounts(b as PromoOrder[]), promotions };
+  return { now: summarizeDiscounts(a as PromoOrder[], current), before: summarizeDiscounts(b as PromoOrder[], previous), promotions };
 }
 
 const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' });
@@ -34,6 +35,12 @@ const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-d
 function when(p: PromotionRow): string {
   if (p.status === 'pending') return p.start ? `começa em ${shortDate.format(new Date(p.start))}` : 'agendada';
   return p.finish ? `até ${shortDate.format(new Date(p.finish))}` : 'sem data para acabar';
+}
+
+function eligibleReach(p: PromotionRow): string {
+  const n = p.candidateItems ?? 0;
+  const inside = p.activeItems ? ` (${count(p.activeItems)} já participando)` : '';
+  return `${count(n)} ${n === 1 ? 'anúncio pode entrar' : 'anúncios podem entrar'}${inside}`;
 }
 
 function reach(p: PromotionRow): string {
@@ -44,6 +51,61 @@ function reach(p: PromotionRow): string {
   }
   if (p.activeItems === null) return '—';
   return `${count(p.activeItems)} ${p.activeItems === 1 ? 'anúncio' : 'anúncios'}`;
+}
+
+function CampaignTable({
+  title,
+  subtitle,
+  empty,
+  rows,
+  detail,
+  detailHead,
+}: {
+  title: string;
+  subtitle?: string;
+  empty: string;
+  rows: PromotionRow[];
+  detail: (p: PromotionRow) => string;
+  detailHead: string;
+}) {
+  return (
+    <section className="panel">
+      <div className="head">
+        <h2>{title}</h2>
+      </div>
+      {subtitle && <p className="sub">{subtitle}</p>}
+      {rows.length ? (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Campanha</th>
+              <th>Quando</th>
+              <th>{detailHead}</th>
+            </tr>
+          </thead>
+          <StaggerRows>
+            {rows.map((p) => (
+              <StaggerRow key={p.id}>
+                <td>
+                  <span className="title">{p.name}</span>
+                  <span className="muted">
+                    {' '}
+                    {p.kind}
+                    {p.coupon ? ` · ${p.coupon.label}` : ''}
+                  </span>
+                  {p.status === 'pending' && <span className="pill promo-pill">agendada</span>}
+                </td>
+                <td>{when(p)}</td>
+                <td>{detail(p)}</td>
+              </StaggerRow>
+            ))}
+          </StaggerRows>
+        </table>
+      ) : (
+        <p className="sub">{empty}</p>
+      )}
+    </section>
+  );
 }
 
 export default async function PromotionsPage({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
@@ -128,43 +190,63 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
             </Kpi>
           </Stagger>
 
-          <section className="panel">
-            <div className="head">
-              <h2>Campanhas no ar e agendadas</h2>
-            </div>
-            {data.promotions === null ? (
+          {days > 1 && (
+            <section className="panel">
+              <div className="head">
+                <h2>Vendas por dia, com e sem desconto</h2>
+              </div>
+              <StackedDailyChart data={data.now.daily} />
+              <details>
+                <summary>Ver em tabela</summary>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Dia</th>
+                      <th>Com desconto</th>
+                      <th>Sem desconto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.now.daily.map((d) => (
+                      <tr key={d.day}>
+                        <td>{dayLabel(d.day)}</td>
+                        <td>
+                          {money(d.withDiscount)} <span className="muted">({count(d.discountedSales)})</span>
+                        </td>
+                        <td>
+                          {money(d.withoutDiscount)} <span className="muted">({count(d.sales - d.discountedSales)})</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </details>
+            </section>
+          )}
+
+          {data.promotions === null ? (
+            <section className="panel">
               <p className="sub">Não foi possível ler as campanhas agora.</p>
-            ) : data.promotions.length ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Campanha</th>
-                    <th>Quando</th>
-                    <th>Participação</th>
-                  </tr>
-                </thead>
-                <StaggerRows>
-                  {data.promotions.map((p) => (
-                    <StaggerRow key={p.id}>
-                      <td>
-                        <span className="title">{p.name}</span>
-                        <span className="muted">
-                          {' '}
-                          {p.kind}
-                          {p.coupon ? ` · ${p.coupon.label}` : ''}
-                        </span>
-                        {p.status === 'pending' && <span className="pill promo-pill">agendada</span>}
-                      </td>
-                      <td>{when(p)}</td>
-                      <td>{reach(p)}</td>
-                    </StaggerRow>
-                  ))}
-                </StaggerRows>
-              </table>
-            ) : (
-              <p className="sub">Nenhuma campanha no ar.</p>
-            )}
-          </section>
+            </section>
+          ) : (
+            <div className="promo-cols">
+              <CampaignTable
+                title="Campanhas em que você participa"
+                empty="Nenhum anúncio seu está em campanha agora."
+                rows={splitPromotions(data.promotions).joined}
+                detail={reach}
+                detailHead="Participação"
+              />
+              <CampaignTable
+                title="Promoções elegíveis"
+                subtitle="Campanhas do ML e suas em que há anúncios que podem entrar e ainda não entraram."
+                empty="Nenhuma promoção com anúncios elegíveis agora."
+                rows={splitPromotions(data.promotions).eligible}
+                detail={eligibleReach}
+                detailHead="Elegíveis"
+              />
+            </div>
+          )}
 
           <section className="panel">
             <div className="head">

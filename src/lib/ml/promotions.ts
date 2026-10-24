@@ -1,5 +1,5 @@
 /** Métricas de promoções: o que as vendas do período tiveram de desconto e quais campanhas estão no ar. */
-import type { MlOrder } from './revenue';
+import { brtDay, daysInRange, type MlOrder, type Range } from './revenue';
 
 export type PromoOrder = MlOrder & {
   tags?: string[];
@@ -17,6 +17,7 @@ export type DiscountSummary = {
   /** Parte das vendas pagas que saiu com desconto (0 a 1). */
   share: number;
   top: { itemId: string; title: string; units: number; gross: number; discount: number }[];
+  daily: { day: string; withDiscount: number; withoutDiscount: number; discountedSales: number; sales: number }[];
 };
 
 /** Desconto de uma linha do pedido; o ML manda o preço cheio em gross_price. */
@@ -26,12 +27,13 @@ function lineDiscount(line: PromoOrder['order_items'][number]): number {
 }
 
 /** Só pedidos pagos: venda cancelada não teve desconto de verdade. */
-export function summarizeDiscounts(orders: PromoOrder[], topN = 10): DiscountSummary {
+export function summarizeDiscounts(orders: PromoOrder[], range: Range, topN = 10): DiscountSummary {
   const acc = {
     with: { sales: 0, gross: 0, units: 0 },
     without: { sales: 0, gross: 0, units: 0 },
   };
   let discountGiven = 0;
+  const daily = new Map(daysInRange(range).map((d) => [d, { day: d, withDiscount: 0, withoutDiscount: 0, discountedSales: 0, sales: 0 }]));
   const items = new Map<string, DiscountSummary['top'][number]>();
 
   for (const o of orders) {
@@ -42,6 +44,14 @@ export function summarizeDiscounts(orders: PromoOrder[], topN = 10): DiscountSum
     bucket.sales++;
     bucket.gross += o.total_amount;
     discountGiven += discount;
+    const day = daily.get(brtDay(o.date_created));
+    if (day) {
+      day.sales++;
+      if (discounted) {
+        day.withDiscount += o.total_amount;
+        day.discountedSales++;
+      } else day.withoutDiscount += o.total_amount;
+    }
     for (const line of o.order_items) {
       bucket.units += line.quantity;
       if (!discounted) continue;
@@ -68,6 +78,7 @@ export function summarizeDiscounts(orders: PromoOrder[], topN = 10): DiscountSum
       .sort((a, b) => b.gross - a.gross)
       .slice(0, topN)
       .map((i) => ({ ...i, gross: cents(i.gross), discount: cents(i.discount) })),
+    daily: [...daily.values()].map((d) => ({ ...d, withDiscount: cents(d.withDiscount), withoutDiscount: cents(d.withoutDiscount) })),
   };
 }
 
@@ -97,6 +108,8 @@ export type PromotionRow = {
   finish: string | null;
   /** Anúncios participando agora (null quando o ML não informa). */
   activeItems: number | null;
+  /** Anúncios que podem entrar e ainda não entraram. */
+  candidateItems: number | null;
   coupon: { label: string; used: number | null; budget: number | null; remaining: number | null } | null;
 };
 
@@ -157,13 +170,16 @@ export async function fetchPromotions(
           return {
             ...base,
             activeItems: null,
+            candidateItems: null,
             coupon: { label: couponLabel(p), used: d.used_coupons ?? null, budget: d.budget ?? null, remaining: d.remaining_budget ?? null },
           };
         }
-        const items = await get<ItemsPage>(`/seller-promotions/promotions/${p.id}/items?promotion_type=${p.type}&app_version=v2&status=started&limit=1`).catch(
-          () => null,
-        );
-        return { ...base, activeItems: items?.paging?.total ?? null, coupon: null };
+        const total = (status: string) =>
+          get<ItemsPage>(`/seller-promotions/promotions/${p.id}/items?promotion_type=${p.type}&app_version=v2&status=${status}&limit=1`)
+            .then((r) => r.paging?.total ?? 0)
+            .catch(() => null);
+        const [activeItems, candidateItems] = await Promise.all([total('started'), total('candidate')]);
+        return { ...base, activeItems, candidateItems, coupon: null };
       }),
     );
     rows.push(...batch);
@@ -174,4 +190,12 @@ export async function fetchPromotions(
       Number(a.status !== 'started') - Number(b.status !== 'started') ||
       (a.finish ?? '9999').localeCompare(b.finish ?? '9999'),
   );
+}
+
+/** Onde cada campanha aparece: as que já têm anúncio seu (ou cupom) e as que têm anúncios elegíveis. */
+export function splitPromotions(rows: PromotionRow[]): { joined: PromotionRow[]; eligible: PromotionRow[] } {
+  return {
+    joined: rows.filter((r) => r.coupon || (r.activeItems ?? 0) > 0),
+    eligible: rows.filter((r) => (r.candidateItems ?? 0) > 0).sort((a, b) => (b.candidateItems ?? 0) - (a.candidateItems ?? 0)),
+  };
 }

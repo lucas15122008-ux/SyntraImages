@@ -69,10 +69,15 @@ const cents = (n: number) => Math.round(n * 100) / 100;
 /** Pedidos que entram nas vendas brutas; os de pagamento pendente ainda não são venda. */
 const COUNTED = new Set(['paid', 'cancelled', 'partially_refunded']);
 
-export function summarizeRevenue(orders: MlOrder[], range: Range, topN = 10): Revenue {
+/** Os dias (AAAA-MM-DD, Brasília) cobertos pelo intervalo, do primeiro ao último. */
+export function daysInRange(range: Range): string[] {
   const days: string[] = [];
   for (let d = brtDay(range.from); d <= brtDay(range.to); d = brtDay(new Date(brtMidnight(d).getTime() + DAY_MS))) days.push(d);
-  const daily = new Map(days.map((d) => [d, { day: d, gross: 0, sales: 0 }]));
+  return days;
+}
+
+export function summarizeRevenue(orders: MlOrder[], range: Range, topN = 10): Revenue {
+  const daily = new Map(daysInRange(range).map((d) => [d, { day: d, gross: 0, sales: 0 }]));
   const items = new Map<string, { itemId: string; title: string; gross: number; units: number }>();
   let gross = 0;
   let sales = 0;

@@ -26,7 +26,8 @@ export function NavLinks({ isAdmin }: { isAdmin: boolean }) {
       ? ([
           { href: '/faturamento', label: 'Faturamento', icon: 'chart' },
           { href: '/promocoes', label: 'Promoções', icon: 'tag' },
-
+          { href: '/foto-x-venda', label: 'Foto x venda', icon: 'sparkles' },
+          { href: '/concorrentes', label: 'Concorrentes', icon: 'flag' },
           { href: '/configuracoes/equipe', label: 'Equipe', icon: 'users' },
         ] as Item[])
       : []),

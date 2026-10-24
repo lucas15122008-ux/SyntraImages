@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { brtDay, change, fetchOrders, mlDate, periodRanges, summarizeRevenue, type MlOrder } from './revenue';
+import { brtDay, change, fetchOrders, mlDate, periodRanges, resolvePeriod, summarizeRevenue, type MlOrder } from './revenue';
 
 const order = (o: Partial<MlOrder> & { id: number }): MlOrder => ({
   status: 'paid',
@@ -96,5 +96,47 @@ describe('busca de pedidos', () => {
     expect(url.searchParams.get('seller')).toBe('42');
     expect(url.searchParams.get('order.date_created.from')).toBe('2026-10-16T00:00:00.000-03:00');
     expect(url.searchParams.get('limit')).toBe('51');
+  });
+});
+
+describe('período pela URL', () => {
+  const now = new Date('2026-10-23T18:00:00Z'); // 15h em Brasília
+
+  test('atalho ?dias, e 30 dias quando não vem nada', () => {
+    expect(resolvePeriod({ dias: '7' }, now).selection).toEqual({ kind: 'preset', days: 7 });
+    expect(resolvePeriod({}, now)).toMatchObject({ selection: { kind: 'preset', days: 30 }, error: null });
+    expect(resolvePeriod({ dias: '12' }, now).selection).toEqual({ kind: 'preset', days: 30 });
+  });
+
+  test('datas personalizadas: do início do primeiro dia ao fim do último; anterior com o mesmo tamanho logo antes', () => {
+    const r = resolvePeriod({ de: '2026-10-01', ate: '2026-10-10' }, now);
+    expect(r.error).toBeNull();
+    expect(r.selection).toEqual({ kind: 'custom', from: '2026-10-01', to: '2026-10-10' });
+    expect(r.dayCount).toBe(10);
+    expect(mlDate(r.current.from)).toBe('2026-10-01T00:00:00.000-03:00');
+    expect(mlDate(r.current.to)).toBe('2026-10-10T23:59:59.999-03:00');
+    expect(mlDate(r.previous.from)).toBe('2026-09-21T00:00:00.000-03:00');
+    expect(mlDate(r.previous.to)).toBe('2026-09-30T23:59:59.999-03:00');
+  });
+
+  test('final no futuro vira hoje, até agora', () => {
+    const r = resolvePeriod({ de: '2026-10-20', ate: '2026-11-05' }, now);
+    expect(r.selection).toEqual({ kind: 'custom', from: '2026-10-20', to: '2026-10-23' });
+    expect(r.current.to).toEqual(now);
+    expect(r.dayCount).toBe(4);
+  });
+
+  test('datas inválidas, invertidas, no futuro ou longas demais voltam para 30 dias com aviso', () => {
+    for (const [de, ate, msg] of [
+      ['2026-10-01', undefined, /duas datas/],
+      ['2026-02-30', '2026-03-01', /duas datas/],
+      ['2026-10-10', '2026-10-01', /antes da final/],
+      ['2026-11-01', '2026-11-02', /futuro/],
+      ['2025-01-01', '2026-10-01', /180 dias/],
+    ] as const) {
+      const r = resolvePeriod({ de, ate }, now);
+      expect(r.selection).toEqual({ kind: 'preset', days: 30 });
+      expect(r.error).toMatch(msg);
+    }
   });
 });

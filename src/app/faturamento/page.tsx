@@ -1,25 +1,25 @@
 import Link from 'next/link';
 import { DailyChart } from '@/components/revenue/DailyChart';
 import { Delta, Kpi, PERIOD_LABEL } from '@/components/revenue/Kpi';
-import { PeriodTabs, ShareBar, Stagger, StaggerRow, StaggerRows } from '@/components/revenue/RevenueMotion';
+import { PeriodPicker } from '@/components/revenue/PeriodPicker';
+import { ShareBar, Stagger, StaggerRow, StaggerRows } from '@/components/revenue/RevenueMotion';
 import { count, dayLabel, money, percent } from '@/components/revenue/format';
 import { Icon } from '@/components/ui/Icon';
 import { getConnectionStatus, mlGet, MlNotConnectedError } from '@/lib/ml/connection';
-import { fetchOrders, PERIODS, periodRanges, summarizeRevenue, type Period, type Revenue, type SearchPage } from '@/lib/ml/revenue';
+import { brtDay, fetchOrders, MAX_CUSTOM_DAYS, PERIODS, resolvePeriod, summarizeRevenue, type Range, type Revenue, type SearchPage } from '@/lib/ml/revenue';
 import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 export const metadata = { title: 'Faturamento' };
 
-async function load(sellerId: number, days: Period): Promise<{ now: Revenue; before: Revenue }> {
-  const { current, previous } = periodRanges(days);
+async function load(sellerId: number, current: Range, previous: Range): Promise<{ now: Revenue; before: Revenue }> {
   const get = (path: string) => mlGet<SearchPage>(path);
   const [a, b] = await Promise.all([fetchOrders(sellerId, current, get), fetchOrders(sellerId, previous, get)]);
   return { now: summarizeRevenue(a, current), before: summarizeRevenue(b, previous) };
 }
 
-export default async function RevenuePage({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
+export default async function RevenuePage({ searchParams }: { searchParams: Promise<{ dias?: string; de?: string; ate?: string }> }) {
   const user = await requireUser();
   const sb = await getSupabaseServer();
   const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
@@ -44,8 +44,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
     );
   }
 
-  const dias = Number((await searchParams).dias);
-  const days: Period = PERIODS.includes(dias as Period) ? (dias as Period) : 30;
+  const period = resolvePeriod(await searchParams);
   const connection = await getConnectionStatus();
   if (!connection) {
     return (
@@ -61,7 +60,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   let data: { now: Revenue; before: Revenue } | null = null;
   let error: string | null = null;
   try {
-    data = await load(connection.mlUserId, days);
+    data = await load(connection.mlUserId, period.current, period.previous);
   } catch (e) {
     error = e instanceof MlNotConnectedError ? e.message : 'Não foi possível buscar os pedidos no Mercado Livre agora. Tente de novo em instantes.';
     console.error('[ml] faturamento', e instanceof Error ? e.message : e);
@@ -70,7 +69,18 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   return (
     <main className="settings-page revenue">
       {head}
-      <PeriodTabs items={PERIODS.map((p) => ({ value: p, label: PERIOD_LABEL[p] }))} current={days} basePath="/faturamento" />
+      <PeriodPicker
+        basePath="/faturamento"
+        presets={PERIODS.map((p) => ({ value: p, label: PERIOD_LABEL[p] }))}
+        selection={period.selection}
+        today={brtDay(new Date())}
+        maxDays={MAX_CUSTOM_DAYS}
+      />
+      {period.error && (
+        <p className="field-error" role="alert">
+          {period.error} Mostrando os últimos 30 dias.
+        </p>
+      )}
 
       {error && (
         <p className="field-error" role="alert">
@@ -111,7 +121,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
             </Kpi>
           </Stagger>
 
-          {days > 1 && (
+          {period.dayCount > 1 && (
             <section className="panel">
               <div className="head">
                 <h2>Faturamento por dia</h2>

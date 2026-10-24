@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { Delta, Kpi, PERIOD_LABEL } from '@/components/revenue/Kpi';
+import { PeriodPicker } from '@/components/revenue/PeriodPicker';
 import { StackedDailyChart } from '@/components/revenue/StackedDailyChart';
-import { PeriodTabs, ShareBar, Stagger, StaggerRow, StaggerRows } from '@/components/revenue/RevenueMotion';
+import { ShareBar, Stagger, StaggerRow, StaggerRows } from '@/components/revenue/RevenueMotion';
 import { count, dayLabel, money } from '@/components/revenue/format';
 import { Icon } from '@/components/ui/Icon';
 import { getConnectionStatus, mlGet, MlNotConnectedError } from '@/lib/ml/connection';
 import { fetchPromotions, splitPromotions, summarizeDiscounts, type DiscountSummary, type PromoOrder, type PromotionRow } from '@/lib/ml/promotions';
-import { fetchOrders, PERIODS, periodRanges, type Period, type SearchPage } from '@/lib/ml/revenue';
+import { brtDay, fetchOrders, MAX_CUSTOM_DAYS, PERIODS, resolvePeriod, type Range, type SearchPage } from '@/lib/ml/revenue';
 import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -15,8 +16,7 @@ export const metadata = { title: 'Promoções' };
 
 type Data = { now: DiscountSummary; before: DiscountSummary; promotions: PromotionRow[] | null };
 
-async function load(sellerId: number, days: Period): Promise<Data> {
-  const { current, previous } = periodRanges(days);
+async function load(sellerId: number, current: Range, previous: Range): Promise<Data> {
   const get = (path: string) => mlGet<SearchPage>(path);
   const [a, b, promotions] = await Promise.all([
     fetchOrders(sellerId, current, get),
@@ -108,7 +108,7 @@ function CampaignTable({
   );
 }
 
-export default async function PromotionsPage({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
+export default async function PromotionsPage({ searchParams }: { searchParams: Promise<{ dias?: string; de?: string; ate?: string }> }) {
   const user = await requireUser();
   const sb = await getSupabaseServer();
   const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
@@ -133,8 +133,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
     );
   }
 
-  const dias = Number((await searchParams).dias);
-  const days: Period = PERIODS.includes(dias as Period) ? (dias as Period) : 30;
+  const period = resolvePeriod(await searchParams);
   const connection = await getConnectionStatus();
   if (!connection) {
     return (
@@ -150,7 +149,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
   let data: Data | null = null;
   let error: string | null = null;
   try {
-    data = await load(connection.mlUserId, days);
+    data = await load(connection.mlUserId, period.current, period.previous);
   } catch (e) {
     error = e instanceof MlNotConnectedError ? e.message : 'Não foi possível buscar os dados no Mercado Livre agora. Tente de novo em instantes.';
     console.error('[ml] promoções', e instanceof Error ? e.message : e);
@@ -159,7 +158,18 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
   return (
     <main className="settings-page revenue">
       {head}
-      <PeriodTabs items={PERIODS.map((p) => ({ value: p, label: PERIOD_LABEL[p] }))} current={days} basePath="/promocoes" />
+      <PeriodPicker
+        basePath="/promocoes"
+        presets={PERIODS.map((p) => ({ value: p, label: PERIOD_LABEL[p] }))}
+        selection={period.selection}
+        today={brtDay(new Date())}
+        maxDays={MAX_CUSTOM_DAYS}
+      />
+      {period.error && (
+        <p className="field-error" role="alert">
+          {period.error} Mostrando os últimos 30 dias.
+        </p>
+      )}
 
       {error && (
         <p className="field-error" role="alert">
@@ -190,7 +200,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
             </Kpi>
           </Stagger>
 
-          {days > 1 && (
+          {period.dayCount > 1 && (
             <section className="panel">
               <div className="head">
                 <h2>Vendas por dia, com e sem desconto</h2>

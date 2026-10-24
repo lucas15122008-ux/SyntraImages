@@ -43,6 +43,51 @@ export function periodRanges(days: Period, now = new Date()): { current: Range; 
   };
 }
 
+/** Maior intervalo personalizado aceito: acima disso a busca de pedidos fica lenta demais. */
+export const MAX_CUSTOM_DAYS = 180;
+
+export type Selection = { kind: 'preset'; days: Period } | { kind: 'custom'; from: string; to: string };
+export type ResolvedPeriod = { selection: Selection; current: Range; previous: Range; dayCount: number; error: string | null };
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const validDay = (d: string | undefined): d is string => !!d && DATE.test(d) && brtDay(brtMidnight(d)) === d;
+
+/**
+ * Lê o período da URL: ?dias=7 (atalho) ou ?de=AAAA-MM-DD&ate=AAAA-MM-DD (personalizado, dias de Brasília).
+ * O período anterior do personalizado é o mesmo número de dias logo antes. Inválido volta para 30 dias com aviso.
+ */
+export function resolvePeriod(params: { dias?: string; de?: string; ate?: string }, now = new Date()): ResolvedPeriod {
+  const preset = (days: Period, error: string | null = null): ResolvedPeriod => {
+    const { current, previous } = periodRanges(days, now);
+    return { selection: { kind: 'preset', days }, current, previous, dayCount: daysInRange(current).length, error };
+  };
+
+  if (params.de === undefined && params.ate === undefined) {
+    const dias = Number(params.dias);
+    return preset(PERIODS.includes(dias as Period) ? (dias as Period) : 30);
+  }
+
+  const today = brtDay(now);
+  const { de, ate } = params;
+  if (!validDay(de) || !validDay(ate)) return preset(30, 'Escolha as duas datas do período.');
+  if (de > ate) return preset(30, 'A data inicial precisa vir antes da final.');
+  if (de > today) return preset(30, 'O período não pode começar no futuro.');
+  const to = ate > today ? today : ate;
+  const from = brtMidnight(de);
+  const end = to === today ? now : new Date(brtMidnight(to).getTime() + DAY_MS - 1);
+  const current = { from, to: end };
+  const dayCount = daysInRange(current).length;
+  if (dayCount > MAX_CUSTOM_DAYS) return preset(30, `Escolha no máximo ${MAX_CUSTOM_DAYS} dias.`);
+  const span = dayCount * DAY_MS;
+  return {
+    selection: { kind: 'custom', from: de, to },
+    current,
+    previous: { from: new Date(from.getTime() - span), to: new Date(from.getTime() - 1) },
+    dayCount,
+    error: null,
+  };
+}
+
 /** Formato que a busca do ML aceita: horário de Brasília com o fuso explícito. */
 export function mlDate(date: Date): string {
   return new Date(date.getTime() + BRT_MS).toISOString().replace('Z', BRT_OFFSET);

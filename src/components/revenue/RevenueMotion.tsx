@@ -1,7 +1,6 @@
 'use client';
 
 import { animate, motion, useMotionValue, useMotionValueEvent } from 'framer-motion';
-import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useMotionPresets, usePrefersReducedMotion } from '@/components/motion/presets';
 import { count, money, percent, share } from './format';
@@ -56,27 +55,6 @@ export function CountUp({ value, format, delay = 0 }: { value: number; format: N
       <span aria-hidden="true">{fmt(current)}</span>
       <span className="sr-only">{fmt(value)}</span>
     </>
-  );
-}
-
-/** Seletor de período com a pílula deslizando até o escolhido, como na navegação. */
-export function PeriodTabs({ items, current, basePath }: { items: { value: number; label: string }[]; current: number; basePath: string }) {
-  const reduced = usePrefersReducedMotion();
-  return (
-    <nav className="segmented" aria-label="Período">
-      {items.map((p) => (
-        <Link key={p.value} href={`${basePath}?dias=${p.value}`} aria-current={p.value === current ? 'page' : undefined}>
-          {p.value === current && (
-            <motion.span
-              layoutId="period-pill"
-              className="segmented-pill"
-              transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
-            />
-          )}
-          <span className="segmented-text">{p.label}</span>
-        </Link>
-      ))}
-    </nav>
   );
 }
 

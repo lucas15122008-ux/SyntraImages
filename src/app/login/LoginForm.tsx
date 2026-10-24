@@ -13,7 +13,7 @@ export function LoginForm({ notice }: { notice?: string }) {
         <div className="auth-brand">
           <LogoMark size={48} />
           <div>
-            <h1>Entrar no SyntraImages</h1>
+            <h1>Entrar na Syntra</h1>
             <p className="sub">Kits de fotos para anúncios, gerados a partir de uma foto da peça.</p>
           </div>
         </div>

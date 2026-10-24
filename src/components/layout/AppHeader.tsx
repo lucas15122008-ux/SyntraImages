@@ -23,9 +23,9 @@ export async function AppHeader() {
 
   return (
     <header className="app-header">
-      <Link className="brand" href="/" aria-label="SyntraImages, início">
+      <Link className="brand" href="/" aria-label="Syntra, início">
         <LogoMark size={34} />
-        <span className="brand-text">SyntraImages</span>
+        <span className="brand-text">Syntra</span>
       </Link>
       <div className="header-right">
         {signedIn && (

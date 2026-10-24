@@ -61,24 +61,13 @@ export function Icon({ name, size = 18, ...rest }: { name: IconName; size?: numb
   );
 }
 
-/** Marca do SyntraImages: um quadro de foto de vidro com uma faísca, em degradê petróleo → verde-água. */
+/** Símbolo da Syntra (identidade Prumo): um "S" geométrico num quadrado petróleo, com o ponto dourado onde entra a venda. */
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false" className="logo-mark">
-      <defs>
-        <linearGradient id="lm-fill" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="var(--accent)" />
-          <stop offset="1" stopColor="var(--accent-2)" />
-        </linearGradient>
-        <linearGradient id="lm-sheen" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff" stopOpacity="0.55" />
-          <stop offset="0.55" stopColor="#fff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#lm-fill)" />
-      <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#lm-sheen)" />
-      <path d="M7 23l6-7 4 4.5 3-3 5 5.5" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M22 6.5l1.1 2.9 2.9 1.1-2.9 1.1L22 14.5l-1.1-2.9L18 10.5l2.9-1.1z" fill="#fff" />
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false" className="logo-mark">
+      <rect x="2" y="2" width="60" height="60" rx="12" fill="var(--logo-bg, #06363f)" />
+      <polyline points="44,20 22,20 22,32 42,32 42,44 20,44" fill="none" stroke="var(--logo-ink, #f6f4ef)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+      {size >= 32 && <circle cx="44" cy="20" r="4" fill="#e0a526" />}
     </svg>
   );
 }

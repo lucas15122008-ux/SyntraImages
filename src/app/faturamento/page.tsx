@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { DailyChart } from '@/components/revenue/DailyChart';
+import { CountUp, PeriodTabs, ShareBar, Stagger, StaggerItem, StaggerRow, StaggerRows, type NumberFormat } from '@/components/revenue/RevenueMotion';
 import { count, dayLabel, money, percent } from '@/components/revenue/format';
 import { Icon } from '@/components/ui/Icon';
 import { getConnectionStatus, mlGet, MlNotConnectedError } from '@/lib/ml/connection';
@@ -17,6 +18,18 @@ async function load(sellerId: number, days: Period): Promise<{ now: Revenue; bef
   const get = (path: string) => mlGet<SearchPage>(path);
   const [a, b] = await Promise.all([fetchOrders(sellerId, current, get), fetchOrders(sellerId, previous, get)]);
   return { now: summarizeRevenue(a, current), before: summarizeRevenue(b, previous) };
+}
+
+function Kpi({ label, value, format, hero = false, children }: { label: string; value: number; format: NumberFormat; hero?: boolean; children: React.ReactNode }) {
+  return (
+    <StaggerItem className={`kpi panel${hero ? ' hero' : ''}`}>
+      <span className="label">{label}</span>
+      <strong>
+        <CountUp value={value} format={format} delay={0.1} />
+      </strong>
+      {children}
+    </StaggerItem>
+  );
 }
 
 function Delta({ now, before, invert = false }: { now: number; before: number; invert?: boolean }) {
@@ -81,13 +94,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   return (
     <main className="settings-page revenue">
       {head}
-      <nav className="segmented" aria-label="Período">
-        {PERIODS.map((p) => (
-          <Link key={p} href={`/faturamento?dias=${p}`} aria-current={p === days ? 'page' : undefined}>
-            {PERIOD_LABEL[p]}
-          </Link>
-        ))}
-      </nav>
+      <PeriodTabs items={PERIODS.map((p) => ({ value: p, label: PERIOD_LABEL[p] }))} current={days} />
 
       {error && (
         <p className="field-error" role="alert">
@@ -97,43 +104,29 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
 
       {data && (
         <>
-          <section className="kpis" aria-label="Resumo">
-            <div className="kpi panel hero">
-              <span className="label">Faturamento bruto</span>
-              <strong>{money(data.now.gross)}</strong>
+          <Stagger className="kpis" label="Resumo">
+            <Kpi hero label="Faturamento bruto" value={data.now.gross} format="money">
               <Delta now={data.now.gross} before={data.before.gross} />
-            </div>
-            <div className="kpi panel">
-              <span className="label">Vendas</span>
-              <strong>{count(data.now.sales)}</strong>
+            </Kpi>
+            <Kpi label="Vendas" value={data.now.sales} format="count">
               <Delta now={data.now.sales} before={data.before.sales} />
-            </div>
-            <div className="kpi panel">
-              <span className="label">Ticket médio</span>
-              <strong>{money(data.now.avgTicket)}</strong>
+            </Kpi>
+            <Kpi label="Ticket médio" value={data.now.avgTicket} format="money">
               <Delta now={data.now.avgTicket} before={data.before.avgTicket} />
-            </div>
-            <div className="kpi panel">
-              <span className="label">Unidades vendidas</span>
-              <strong>{count(data.now.units)}</strong>
+            </Kpi>
+            <Kpi label="Unidades vendidas" value={data.now.units} format="count">
               <Delta now={data.now.units} before={data.before.units} />
-            </div>
-            <div className="kpi panel">
-              <span className="label">Tarifas de venda do ML</span>
-              <strong>{money(data.now.fees)}</strong>
+            </Kpi>
+            <Kpi label="Tarifas de venda do ML" value={data.now.fees} format="money">
               <span className="delta">{data.now.gross ? `${percent(data.now.fees / data.now.gross).replace('+', '')} do bruto` : ' '}</span>
-            </div>
-            <div className="kpi panel">
-              <span className="label">Bruto menos tarifas</span>
-              <strong>{money(data.now.net)}</strong>
+            </Kpi>
+            <Kpi label="Bruto menos tarifas" value={data.now.net} format="money">
               <span className="delta muted">sem frete, impostos e custo do produto</span>
-            </div>
-            <div className="kpi panel">
-              <span className="label">Canceladas</span>
-              <strong>{count(data.now.cancelled.sales)}</strong>
+            </Kpi>
+            <Kpi label="Canceladas" value={data.now.cancelled.sales} format="count">
               <span className="delta muted">{money(data.now.cancelled.amount)}</span>
-            </div>
-          </section>
+            </Kpi>
+          </Stagger>
 
           {days > 1 && (
             <section className="panel">
@@ -178,18 +171,19 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
                     <th>Faturamento</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {data.now.top.map((t) => (
-                    <tr key={t.itemId}>
+                <StaggerRows>
+                  {data.now.top.map((t, i) => (
+                    <StaggerRow key={t.itemId}>
                       <td>
                         <span className="title">{t.title}</span>
                         <span className="muted"> {t.itemId}</span>
+                        <ShareBar share={t.gross / data.now.top[0].gross} index={i} />
                       </td>
                       <td>{count(t.units)}</td>
                       <td>{money(t.gross)}</td>
-                    </tr>
+                    </StaggerRow>
                   ))}
-                </tbody>
+                </StaggerRows>
               </table>
             ) : (
               <p className="sub">Nenhuma venda paga neste período.</p>

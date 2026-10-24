@@ -1,3 +1,7 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { usePrefersReducedMotion } from '@/components/motion/presets';
 import { dayLabel, money, moneyShort } from './format';
 
 type Point = { day: string; gross: number; sales: number };
@@ -15,6 +19,7 @@ function niceMax(max: number): number {
 
 /** Faturamento por dia em barras (uma série: o título da seção já diz o que é). */
 export function DailyChart({ data }: { data: Point[] }) {
+  const reduced = usePrefersReducedMotion();
   const top = niceMax(Math.max(...data.map((d) => d.gross)));
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
@@ -44,7 +49,12 @@ export function DailyChart({ data }: { data: Point[] }) {
             {/* Área de toque maior que a barra. */}
             <rect className="hit" x={PAD.left + i * slot} y={PAD.top} width={slot} height={plotH} />
             {h > 0 && (
-              <path
+              // As barras crescem a partir da linha de base, em cascata da esquerda para a direita.
+              <motion.path
+                initial={{ scaleY: reduced ? 1 : 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: reduced ? 0 : 0.6, delay: reduced ? 0 : 0.15 + i * (0.6 / data.length), ease: [0.22, 1, 0.36, 1] }}
+                style={{ transformBox: 'fill-box', originY: 1 }}
                 d={`M${x},${y(0)} V${y(0) - h + r} Q${x},${y(0) - h} ${x + r},${y(0) - h} H${x + barW - r} Q${x + barW},${y(0) - h} ${x + barW},${y(0) - h + r} V${y(0)} Z`}
               />
             )}

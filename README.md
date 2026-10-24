@@ -30,7 +30,9 @@ No **SQL Editor** do Supabase, rode, nesta ordem, o conteúdo de:
 1. `supabase/migrations/0001_init.sql` (tabelas, regras de acesso RLS e os três buckets privados `originals`, `generated` e `store`)
 2. `supabase/migrations/0002_generation_log.sql` (teto diário de gerações)
 3. `supabase/migrations/0003_ml_connection.sql` (conexão com a conta do Mercado Livre)
-
+4. `supabase/migrations/0004_revenue_goal.sql` (meta de faturamento do mês)
+5. `supabase/migrations/0005_photo_switches.sql` (dia em que cada anúncio passou a usar as fotos do Syntra, usado no Foto x venda)
+6. `supabase/migrations/0006_item_costs.sql` (custo de cada anúncio, usado no simulador de promoções)
 
 (Com a CLI do Supabase: `supabase link` e `supabase db push`.)
 

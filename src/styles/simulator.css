@@ -1,0 +1,32 @@
+/* Simulador de promoção (/promocoes/simular). */
+.sim-back { font-size: 13px; text-decoration: none; }
+.sim-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.sim-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.sim-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; align-items: end; }
+.sim-summary { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; grid-column: 1 / -1; }
+.sim-summary strong { font-variant-numeric: tabular-nums; }
+.sim-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sim-row { display: grid; grid-template-columns: minmax(220px, 2.2fr) 120px repeat(3, minmax(150px, 1fr)); gap: 14px; padding: 16px; align-items: start; font-variant-numeric: tabular-nums; }
+.sim-item { display: flex; gap: 12px; min-width: 0; }
+.sim-item img, .sim-thumb { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; background: var(--thumb); flex: none; }
+.sim-item > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sim-item .title { color: var(--ink); font-weight: 500; text-decoration: none; overflow-wrap: anywhere; }
+.sim-item .title:hover { text-decoration: underline; }
+.sim-item .muted, .sim-col .muted { font-size: 12px; }
+.sim-col { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sim-col .up { color: var(--ok); font-weight: 600; font-size: 13.5px; }
+.sim-col .down { color: var(--danger); font-weight: 600; font-size: 13.5px; }
+.sim-summary .up { color: var(--ok); }
+.sim-summary .down { color: var(--danger); }
+.sim-cost input, .sim-col .sim-price { padding: 7px 10px; }
+.sim-verdict .pill { align-self: flex-start; }
+.sim-next { align-self: center; }
+.sim-foot { font-size: 12.5px; }
+@media (max-width: 900px) {
+  .sim-row { grid-template-columns: 1fr 1fr; }
+  .sim-item { grid-column: 1 / -1; }
+}
+@media (max-width: 520px) {
+  .sim-row { grid-template-columns: 1fr; }
+  .sim-form { grid-template-columns: 1fr; }
+}

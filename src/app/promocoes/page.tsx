@@ -124,6 +124,9 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
         <h1>Promoções</h1>
         <p className="sub">Quanto das vendas pagas saiu com desconto, quanto de desconto foi dado e quais campanhas estão no ar no Mercado Livre.</p>
       </div>
+      <Link className="btn soft" href="/promocoes/simular">
+        <Icon name="tag" size={16} /> A promoção vale a pena?
+      </Link>
     </div>
   );
 

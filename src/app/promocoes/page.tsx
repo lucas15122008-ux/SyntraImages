@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Delta, Kpi, PERIOD_LABEL } from '@/components/revenue/Kpi';
 import { PeriodPicker } from '@/components/revenue/PeriodPicker';
@@ -37,10 +38,14 @@ function when(p: PromotionRow): string {
   return p.finish ? `até ${shortDate.format(new Date(p.finish))}` : 'sem data para acabar';
 }
 
-function eligibleReach(p: PromotionRow): string {
+function eligibleReach(p: PromotionRow): ReactNode {
   const n = p.candidateItems ?? 0;
-  const inside = p.activeItems ? ` (${count(p.activeItems)} já participando)` : '';
-  return `${count(n)} ${n === 1 ? 'anúncio pode entrar' : 'anúncios podem entrar'}${inside}`;
+  return (
+    <>
+      {count(n)} {n === 1 ? 'anúncio' : 'anúncios'}
+      {p.activeItems ? <span className="muted block">{count(p.activeItems)} já participando</span> : null}
+    </>
+  );
 }
 
 function reach(p: PromotionRow): string {
@@ -65,7 +70,7 @@ function CampaignTable({
   subtitle?: string;
   empty: string;
   rows: PromotionRow[];
-  detail: (p: PromotionRow) => string;
+  detail: (p: PromotionRow) => ReactNode;
   detailHead: string;
 }) {
   return (
@@ -75,7 +80,7 @@ function CampaignTable({
       </div>
       {subtitle && <p className="sub">{subtitle}</p>}
       {rows.length ? (
-        <table className="data-table">
+        <table className="data-table campaigns">
           <thead>
             <tr>
               <th>Campanha</th>
@@ -253,7 +258,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
                 empty="Nenhuma promoção com anúncios elegíveis agora."
                 rows={splitPromotions(data.promotions).eligible}
                 detail={eligibleReach}
-                detailHead="Elegíveis"
+                detailHead="Podem entrar"
               />
             </div>
           )}

@@ -174,11 +174,14 @@ export async function fetchPromotions(
             coupon: { label: couponLabel(p), used: d.used_coupons ?? null, budget: d.budget ?? null, remaining: d.remaining_budget ?? null },
           };
         }
-        const total = (status: string) =>
-          get<ItemsPage>(`/seller-promotions/promotions/${p.id}/items?promotion_type=${p.type}&app_version=v2&status=${status}&limit=1`)
+        const total = (status?: string) =>
+          get<ItemsPage>(`/seller-promotions/promotions/${p.id}/items?promotion_type=${p.type}&app_version=v2${status ? `&status=${status}` : ''}&limit=1`)
             .then((r) => r.paging?.total ?? 0)
             .catch(() => null);
-        const [activeItems, candidateItems] = await Promise.all([total('started'), total('candidate')]);
+        const [activeItems, candidates, all] = await Promise.all([total('started'), total('candidate'), total()]);
+        // Em algumas campanhas (ex.: SELLER_CAMPAIGN) o ML devolve no total de "candidate" o total geral,
+        // ignorando o filtro; os elegíveis não passam de "todos menos os que já participam".
+        const candidateItems = candidates === null ? null : all === null ? candidates : Math.min(candidates, Math.max(0, all - (activeItems ?? 0)));
         return { ...base, activeItems, candidateItems, coupon: null };
       }),
     );

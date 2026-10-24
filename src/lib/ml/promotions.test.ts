@@ -72,7 +72,8 @@ describe('campanhas', () => {
           ],
         };
       }
-      if (path.includes('/C-1/items')) return { paging: { total: path.includes('status=started') ? 616 : 181 } };
+      // Como o ML real: o total de "candidate" vem igual ao total geral nessa campanha.
+      if (path.includes('/C-1/items')) return { paging: { total: path.includes('status=started') ? 616 : 797 } };
       if (path.includes('/C-2/items')) throw new Error('404');
       if (path.includes('/C-9?')) return { budget: 82, remaining_budget: 2, used_coupons: 20 };
       throw new Error(`inesperado: ${path}`);

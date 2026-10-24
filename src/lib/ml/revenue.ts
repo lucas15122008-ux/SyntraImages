@@ -134,15 +134,19 @@ export function summarizeRevenue(orders: MlOrder[], range: Range, topN = 10): Re
 
 export type SearchPage = { results: MlOrder[]; paging: { total: number } };
 
-/** Todos os pedidos criados no intervalo, buscando as páginas em paralelo (poucas por vez). */
+/**
+ * Todos os pedidos criados no intervalo, buscando as páginas em paralelo (poucas por vez).
+ * `itemId` limita aos pedidos de um anúncio.
+ */
 export async function fetchOrders(
   sellerId: number,
   range: Range,
   get: (path: string) => Promise<SearchPage>,
   concurrency = 4,
+  itemId?: string,
 ): Promise<MlOrder[]> {
   const path = (offset: number) =>
-    `/orders/search?seller=${sellerId}&order.date_created.from=${encodeURIComponent(mlDate(range.from))}` +
+    `/orders/search?seller=${sellerId}${itemId ? `&item=${itemId}` : ''}&order.date_created.from=${encodeURIComponent(mlDate(range.from))}` +
     `&order.date_created.to=${encodeURIComponent(mlDate(range.to))}&sort=date_asc&limit=${PAGE}&offset=${offset}`;
 
   const first = await get(path(0));

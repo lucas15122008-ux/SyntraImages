@@ -1,9 +1,13 @@
 import { notFound } from 'next/navigation';
+import { PublishForm } from '@/components/impact/PublishForm';
 import { KitScreen } from '@/components/kit/KitScreen';
+import { dayLabel } from '@/components/revenue/format';
 import { KitSteps } from '@/components/layout/KitSteps';
 import type { ReviewPhoto } from '@/components/kit/PhotoCard';
 import { isReadyForDownload } from '@/lib/kit/download';
 import { isStaleGeneration } from '@/lib/kit/limits';
+import { switchesForKit } from '@/lib/ml/photo-switches';
+import { brtDay } from '@/lib/ml/revenue';
 import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
 
 // Longa o bastante para a tela ficar aberta durante um kit inteiro sem as imagens expirarem.
@@ -42,6 +46,8 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
 
   const allReady = photos.length > 0 && photos.every((p) => isReadyForDownload(p.status, !!p.url));
   const car = [kit.car_model, kit.car_year].filter(Boolean).join(' ');
+  // O kit já passou pelo RLS acima, então é de quem está vendo.
+  const published = allReady ? await switchesForKit(kitId).catch(() => []) : [];
   return (
     <>
       <div className="page-head">
@@ -52,6 +58,24 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
         <KitSteps current={allReady ? 3 : 2} />
       </div>
       <KitScreen kitId={kitId} title={car ? `${kit.product_name} · ${car}` : kit.product_name} originalUrl={originalUrl} photos={photos} />
+      {allReady && (
+        <section className="panel kit-published">
+          <div className="head">
+            <h2>Publicou estas fotos no Mercado Livre?</h2>
+          </div>
+          <p className="sub">Registre o anúncio e o dia da troca. A tela Foto x venda compara as vendas antes e depois.</p>
+          {published.length > 0 && (
+            <ul>
+              {published.map((p) => (
+                <li key={p.id} className="status-ok">
+                  {p.ml_item_id} desde {dayLabel(p.switched_on)}
+                </li>
+              ))}
+            </ul>
+          )}
+          <PublishForm kitId={kitId} today={brtDay(new Date())} />
+        </section>
+      )}
     </>
   );
 }

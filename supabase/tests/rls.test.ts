@@ -204,3 +204,4 @@ describe('conexão com o Mercado Livre', () => {
     ).rejects.toThrow(/check/i);
   });
 });
+

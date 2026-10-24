@@ -31,6 +31,7 @@ No **SQL Editor** do Supabase, rode, nesta ordem, o conteúdo de:
 2. `supabase/migrations/0002_generation_log.sql` (teto diário de gerações)
 3. `supabase/migrations/0003_ml_connection.sql` (conexão com a conta do Mercado Livre)
 4. `supabase/migrations/0004_revenue_goal.sql` (meta de faturamento do mês)
+6. `supabase/migrations/0006_item_costs.sql` (custo de cada anúncio, usado no simulador de promoções)
 
 (Com a CLI do Supabase: `supabase link` e `supabase db push`.)
 

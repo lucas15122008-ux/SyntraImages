@@ -29,10 +29,14 @@ function brtMidnight(day: string): Date {
   return new Date(`${day}T00:00:00.000${BRT_OFFSET}`);
 }
 
-/** Período atual (desde a meia-noite de N-1 dias atrás até agora) e o anterior, do mesmo tamanho. */
+/**
+ * Período atual e o anterior, do mesmo tamanho. Como no painel do ML, "últimos N dias" são os N dias
+ * completos antes de hoje mais o dia de hoje até agora (7 dias em 23/10 vai de 16/10 a 23/10).
+ */
 export function periodRanges(days: Period, now = new Date()): { current: Range; previous: Range } {
-  const from = new Date(brtMidnight(brtDay(now)).getTime() - (days - 1) * DAY_MS);
-  const span = days * DAY_MS;
+  const back = days === 1 ? 0 : days;
+  const from = new Date(brtMidnight(brtDay(now)).getTime() - back * DAY_MS);
+  const span = (back + 1) * DAY_MS;
   return {
     current: { from, to: now },
     previous: { from: new Date(from.getTime() - span), to: new Date(now.getTime() - span) },
@@ -45,54 +49,58 @@ export function mlDate(date: Date): string {
 }
 
 export type Revenue = {
+  /** Vendas brutas, como no painel do ML: todos os pedidos do período, inclusive os cancelados depois. */
   gross: number;
-  fees: number;
-  net: number;
   sales: number;
-  orders: number;
   units: number;
   avgTicket: number;
+  avgUnitPrice: number;
   cancelled: { sales: number; amount: number };
+  /** Só os pedidos pagos (bruto menos cancelados). */
+  paid: number;
+  fees: number;
+  /** Pagos menos as tarifas de venda do ML. */
+  net: number;
   daily: { day: string; gross: number; sales: number }[];
   top: { itemId: string; title: string; gross: number; units: number }[];
 };
 
 const cents = (n: number) => Math.round(n * 100) / 100;
+/** Pedidos que entram nas vendas brutas; os de pagamento pendente ainda não são venda. */
+const COUNTED = new Set(['paid', 'cancelled', 'partially_refunded']);
 
-/** Pedido pago conta como faturado; cancelado vai à parte; o resto (pagamento pendente etc.) fica de fora. */
 export function summarizeRevenue(orders: MlOrder[], range: Range, topN = 10): Revenue {
   const days: string[] = [];
   for (let d = brtDay(range.from); d <= brtDay(range.to); d = brtDay(new Date(brtMidnight(d).getTime() + DAY_MS))) days.push(d);
-  const daily = new Map(days.map((d) => [d, { day: d, gross: 0, sales: new Set<number>() }]));
+  const daily = new Map(days.map((d) => [d, { day: d, gross: 0, sales: 0 }]));
   const items = new Map<string, { itemId: string; title: string; gross: number; units: number }>();
-  const salesSet = new Set<number>();
-  const cancelledSet = new Set<number>();
   let gross = 0;
-  let fees = 0;
+  let sales = 0;
   let units = 0;
-  let paidOrders = 0;
+  let fees = 0;
+  let cancelledSales = 0;
   let cancelledAmount = 0;
 
   for (const o of orders) {
-    const sale = o.pack_id ?? o.id;
-    if (o.status === 'cancelled') {
-      cancelledSet.add(sale);
-      cancelledAmount += o.total_amount;
-      continue;
-    }
-    if (o.status !== 'paid') continue;
-    paidOrders++;
-    salesSet.add(sale);
+    if (!COUNTED.has(o.status)) continue;
+    // O ML conta cada pedido como uma venda, mesmo os de um mesmo carrinho.
+    sales++;
     gross += o.total_amount;
     const bucket = daily.get(brtDay(o.date_created));
     if (bucket) {
       bucket.gross += o.total_amount;
-      bucket.sales.add(sale);
+      bucket.sales++;
+    }
+    const cancelled = o.status === 'cancelled';
+    if (cancelled) {
+      cancelledSales++;
+      cancelledAmount += o.total_amount;
     }
     for (const line of o.order_items) {
+      units += line.quantity;
+      if (cancelled) continue;
       // sale_fee vem por unidade.
       fees += (line.sale_fee ?? 0) * line.quantity;
-      units += line.quantity;
       const cur = items.get(line.item.id) ?? { itemId: line.item.id, title: line.item.title, gross: 0, units: 0 };
       cur.gross += line.unit_price * line.quantity;
       cur.units += line.quantity;
@@ -100,16 +108,18 @@ export function summarizeRevenue(orders: MlOrder[], range: Range, topN = 10): Re
     }
   }
 
+  const paid = gross - cancelledAmount;
   return {
     gross: cents(gross),
-    fees: cents(fees),
-    net: cents(gross - fees),
-    sales: salesSet.size,
-    orders: paidOrders,
+    sales,
     units,
-    avgTicket: salesSet.size ? cents(gross / salesSet.size) : 0,
-    cancelled: { sales: cancelledSet.size, amount: cents(cancelledAmount) },
-    daily: [...daily.values()].map((b) => ({ day: b.day, gross: cents(b.gross), sales: b.sales.size })),
+    avgTicket: sales ? cents(gross / sales) : 0,
+    avgUnitPrice: units ? cents(gross / units) : 0,
+    cancelled: { sales: cancelledSales, amount: cents(cancelledAmount) },
+    paid: cents(paid),
+    fees: cents(fees),
+    net: cents(paid - fees),
+    daily: [...daily.values()].map((b) => ({ ...b, gross: cents(b.gross) })),
     top: [...items.values()]
       .sort((a, b) => b.gross - a.gross)
       .slice(0, topN)

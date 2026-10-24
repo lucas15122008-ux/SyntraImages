@@ -52,7 +52,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
     <div className="page-head">
       <div>
         <h1>Faturamento</h1>
-        <p className="sub">Vendas pagas no Mercado Livre, pelo dia em que o pedido foi feito (horário de Brasília).</p>
+        <p className="sub">Vendas no Mercado Livre pelo dia em que o pedido foi feito, contadas como no painel do ML (horário de Brasília).</p>
       </div>
     </div>
   );
@@ -105,26 +105,33 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
       {data && (
         <>
           <Stagger className="kpis" label="Resumo">
-            <Kpi hero label="Faturamento bruto" value={data.now.gross} format="money">
+            <Kpi hero label="Vendas brutas" value={data.now.gross} format="money">
               <Delta now={data.now.gross} before={data.before.gross} />
             </Kpi>
-            <Kpi label="Vendas" value={data.now.sales} format="count">
+            <Kpi label="Quantidade de vendas" value={data.now.sales} format="count">
               <Delta now={data.now.sales} before={data.before.sales} />
-            </Kpi>
-            <Kpi label="Ticket médio" value={data.now.avgTicket} format="money">
-              <Delta now={data.now.avgTicket} before={data.before.avgTicket} />
             </Kpi>
             <Kpi label="Unidades vendidas" value={data.now.units} format="count">
               <Delta now={data.now.units} before={data.before.units} />
             </Kpi>
-            <Kpi label="Tarifas de venda do ML" value={data.now.fees} format="money">
-              <span className="delta">{data.now.gross ? `${percent(data.now.fees / data.now.gross).replace('+', '')} do bruto` : ' '}</span>
+            <Kpi label="Preço médio por venda" value={data.now.avgTicket} format="money">
+              <Delta now={data.now.avgTicket} before={data.before.avgTicket} />
             </Kpi>
-            <Kpi label="Bruto menos tarifas" value={data.now.net} format="money">
-              <span className="delta muted">sem frete, impostos e custo do produto</span>
+            <Kpi label="Preço médio por unidade" value={data.now.avgUnitPrice} format="money">
+              <Delta now={data.now.avgUnitPrice} before={data.before.avgUnitPrice} />
             </Kpi>
-            <Kpi label="Canceladas" value={data.now.cancelled.sales} format="count">
+            <Kpi label="Vendas canceladas" value={data.now.cancelled.sales} format="count">
               <span className="delta muted">{money(data.now.cancelled.amount)}</span>
+              <Delta now={data.now.cancelled.sales} before={data.before.cancelled.sales} invert />
+            </Kpi>
+            <Kpi label="Vendas pagas" value={data.now.paid} format="money">
+              <span className="delta muted">vendas brutas sem as canceladas</span>
+            </Kpi>
+            <Kpi label="Tarifas de venda do ML" value={data.now.fees} format="money">
+              <span className="delta">{data.now.paid ? `${percent(data.now.fees / data.now.paid).replace('+', '')} das vendas pagas` : ' '}</span>
+            </Kpi>
+            <Kpi label="Pagas menos tarifas" value={data.now.net} format="money">
+              <span className="delta muted">sem frete, impostos e custo do produto</span>
             </Kpi>
           </Stagger>
 

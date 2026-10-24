@@ -461,6 +461,7 @@ input[aria-invalid='true'] { border-color: var(--warn); box-shadow: 0 0 0 3px va
 .data-table td { padding: 8px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: top; }
 .data-table th:not(:first-child), .data-table td:not(:first-child) { text-align: right; white-space: nowrap; }
 .data-table .muted { font-size: 12px; }
+.promo-pill { margin-left: 8px; vertical-align: 1px; }
 .share-bar { display: block; height: 4px; margin-top: 6px; border-radius: 4px; background: var(--line); overflow: hidden; }
 .share-bar > span { display: block; height: 100%; border-radius: 4px; background: var(--accent); transform-origin: left center; }
 @media (prefers-reduced-motion: reduce) { .kpi, .kpi:hover { transition: none; transform: none; } }

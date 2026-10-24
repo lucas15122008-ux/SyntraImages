@@ -4,10 +4,10 @@ import { animate, motion, useMotionValue, useMotionValueEvent } from 'framer-mot
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useMotionPresets, usePrefersReducedMotion } from '@/components/motion/presets';
-import { count, money, percent } from './format';
+import { count, money, percent, share } from './format';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
-const FORMAT = { money, count, percent } as const;
+const FORMAT = { money, count, percent, share } as const;
 export type NumberFormat = keyof typeof FORMAT;
 
 /** Grupo cujos filhos (StaggerItem) entram em cascata. */
@@ -60,12 +60,12 @@ export function CountUp({ value, format, delay = 0 }: { value: number; format: N
 }
 
 /** Seletor de período com a pílula deslizando até o escolhido, como na navegação. */
-export function PeriodTabs({ items, current }: { items: { value: number; label: string }[]; current: number }) {
+export function PeriodTabs({ items, current, basePath }: { items: { value: number; label: string }[]; current: number; basePath: string }) {
   const reduced = usePrefersReducedMotion();
   return (
     <nav className="segmented" aria-label="Período">
       {items.map((p) => (
-        <Link key={p.value} href={`/faturamento?dias=${p.value}`} aria-current={p.value === current ? 'page' : undefined}>
+        <Link key={p.value} href={`${basePath}?dias=${p.value}`} aria-current={p.value === current ? 'page' : undefined}>
           {p.value === current && (
             <motion.span
               layoutId="period-pill"

@@ -1,46 +1,22 @@
 import Link from 'next/link';
 import { DailyChart } from '@/components/revenue/DailyChart';
-import { CountUp, PeriodTabs, ShareBar, Stagger, StaggerItem, StaggerRow, StaggerRows, type NumberFormat } from '@/components/revenue/RevenueMotion';
+import { Delta, Kpi, PERIOD_LABEL } from '@/components/revenue/Kpi';
+import { PeriodTabs, ShareBar, Stagger, StaggerRow, StaggerRows } from '@/components/revenue/RevenueMotion';
 import { count, dayLabel, money, percent } from '@/components/revenue/format';
 import { Icon } from '@/components/ui/Icon';
 import { getConnectionStatus, mlGet, MlNotConnectedError } from '@/lib/ml/connection';
-import { change, fetchOrders, PERIODS, periodRanges, summarizeRevenue, type Period, type Revenue, type SearchPage } from '@/lib/ml/revenue';
+import { fetchOrders, PERIODS, periodRanges, summarizeRevenue, type Period, type Revenue, type SearchPage } from '@/lib/ml/revenue';
 import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 export const metadata = { title: 'Faturamento' };
 
-const PERIOD_LABEL: Record<Period, string> = { 1: 'Hoje', 7: '7 dias', 30: '30 dias', 90: '90 dias' };
-
 async function load(sellerId: number, days: Period): Promise<{ now: Revenue; before: Revenue }> {
   const { current, previous } = periodRanges(days);
   const get = (path: string) => mlGet<SearchPage>(path);
   const [a, b] = await Promise.all([fetchOrders(sellerId, current, get), fetchOrders(sellerId, previous, get)]);
   return { now: summarizeRevenue(a, current), before: summarizeRevenue(b, previous) };
-}
-
-function Kpi({ label, value, format, hero = false, children }: { label: string; value: number; format: NumberFormat; hero?: boolean; children: React.ReactNode }) {
-  return (
-    <StaggerItem className={`kpi panel${hero ? ' hero' : ''}`}>
-      <span className="label">{label}</span>
-      <strong>
-        <CountUp value={value} format={format} delay={0.1} />
-      </strong>
-      {children}
-    </StaggerItem>
-  );
-}
-
-function Delta({ now, before, invert = false }: { now: number; before: number; invert?: boolean }) {
-  const c = change(now, before);
-  if (c === null) return <span className="delta">sem base para comparar</span>;
-  const good = invert ? c < 0 : c > 0;
-  return (
-    <span className={`delta ${c === 0 ? '' : good ? 'up' : 'down'}`}>
-      {percent(c)} <span className="muted">vs. período anterior</span>
-    </span>
-  );
 }
 
 export default async function RevenuePage({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
@@ -94,7 +70,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   return (
     <main className="settings-page revenue">
       {head}
-      <PeriodTabs items={PERIODS.map((p) => ({ value: p, label: PERIOD_LABEL[p] }))} current={days} />
+      <PeriodTabs items={PERIODS.map((p) => ({ value: p, label: PERIOD_LABEL[p] }))} current={days} basePath="/faturamento" />
 
       {error && (
         <p className="field-error" role="alert">

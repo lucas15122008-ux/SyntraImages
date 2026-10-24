@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { THEME_SCRIPT } from '@/components/layout/theme';
 import '@/styles/glass.css';
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
           <footer className="credit">Made by Pegasus</footer>
         </div>
+        <Analytics />
       </body>
     </html>
   );

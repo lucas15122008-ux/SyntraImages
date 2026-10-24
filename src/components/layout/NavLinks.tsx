@@ -22,7 +22,12 @@ export function NavLinks({ isAdmin }: { isAdmin: boolean }) {
     { href: '/', label: 'Meus kits', icon: 'grid' },
     { href: '/configuracoes/loja', label: 'Fotos da loja', icon: 'store' },
     { href: '/configuracoes/mercado-livre', label: 'Mercado Livre', icon: 'layers' },
-    ...(isAdmin ? [{ href: '/configuracoes/equipe', label: 'Equipe', icon: 'users' } as Item] : []),
+    ...(isAdmin
+      ? ([
+          { href: '/faturamento', label: 'Faturamento', icon: 'chart' },
+          { href: '/configuracoes/equipe', label: 'Equipe', icon: 'users' },
+        ] as Item[])
+      : []),
   ];
 
   return (

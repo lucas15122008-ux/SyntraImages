@@ -31,6 +31,7 @@ const PATHS = {
   chevronLeft: 'M15 5l-7 7 7 7',
   chevronRight: 'M9 5l7 7-7 7',
   arrowRight: 'M5 12h14M13 6l6 6-6 6',
+  chart: 'M4 20V11M10 20V5M16 20v-6M21 20H3',
   layers: 'M12 3 2 8l10 5 10-5zM2 13l10 5 10-5M2 17.5l10 5 10-5',
   bookmark: 'M6 3h12v18l-6-4-6 4z',
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5l3 2',

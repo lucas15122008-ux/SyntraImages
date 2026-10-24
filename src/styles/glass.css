@@ -427,3 +427,33 @@ input[aria-invalid='true'] { border-color: var(--warn); box-shadow: 0 0 0 3px va
   .tog::after, .btn, .btn::after, .card, .kit-card, .kit-new, .card .img > img, .kit-card .cover img { transition: none; }
   .card:hover, .kit-card:hover, .kit-new:hover, .btn:hover:not(:disabled) { transform: none; }
 }
+
+/* ───────────── Faturamento ───────────── */
+.segmented { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--field); border: 1px solid var(--glass-edge); align-self: flex-start; }
+.segmented a { padding: 6px 14px; border-radius: 999px; font-size: 13.5px; color: var(--muted); text-decoration: none; }
+.segmented a:hover { color: var(--ink); }
+.segmented a[aria-current='page'] { background: var(--panel-strong); color: var(--ink); font-weight: 600; box-shadow: inset 0 1px 0 var(--glass-edge); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.kpi { gap: 6px; padding: 16px 18px; }
+.kpi .label { font-size: 12.5px; color: var(--muted); }
+.kpi strong { font-size: 22px; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.kpi.hero { grid-column: span 2; }
+.kpi.hero strong { font-size: 32px; }
+@media (max-width: 520px) { .kpi.hero { grid-column: auto; } }
+.delta { font-size: 12.5px; color: var(--muted); }
+.delta.up { color: var(--ok); }
+.delta.down { color: var(--danger); }
+.revenue .muted, .delta .muted { color: var(--muted); }
+.daily-chart { width: 100%; height: auto; display: block; }
+.daily-chart .grid { stroke: var(--line); stroke-width: 1; }
+.daily-chart .axis { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.daily-chart .bar path { fill: var(--accent); }
+.daily-chart .bar .hit { fill: transparent; }
+.daily-chart .bar:hover .hit { fill: var(--accent-soft); opacity: 0.5; }
+.daily-chart .bar:hover path { fill: var(--accent-2); }
+.revenue details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.data-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12.5px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.data-table td { padding: 8px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: top; }
+.data-table th:not(:first-child), .data-table td:not(:first-child) { text-align: right; white-space: nowrap; }
+.data-table .muted { font-size: 12px; }

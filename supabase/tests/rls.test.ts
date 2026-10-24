@@ -204,3 +204,24 @@ describe('conexão com o Mercado Livre', () => {
     ).rejects.toThrow(/check/i);
   });
 });
+
+describe('meta do mês', () => {
+  test('só o admin lê e grava a meta', async () => {
+    await denied(as(ALICE, () => db.query(`insert into public.revenue_goals (month, amount) values ('2026-10-01', 50000)`)));
+    await as(ADMIN, async () => {
+      await db.query(`insert into public.revenue_goals (month, amount) values ('2026-10-01', 50000)`);
+      await db.query(`update public.revenue_goals set amount = 60000 where month = '2026-10-01'`);
+    });
+    const seen = await as(ALICE, () => db.query(`select * from public.revenue_goals`));
+    expect(seen.rows).toHaveLength(0);
+    const { rows } = await as(ADMIN, () => db.query<{ amount: string }>(`select amount from public.revenue_goals`));
+    expect(rows).toEqual([{ amount: '60000.00' }]);
+  });
+
+  test('o mês é sempre o dia 1 e a meta é positiva', async () => {
+    await as(ADMIN, async () => {
+      await expect(db.query(`insert into public.revenue_goals (month, amount) values ('2026-11-15', 1)`)).rejects.toThrow(/check/i);
+      await expect(db.query(`insert into public.revenue_goals (month, amount) values ('2026-11-01', 0)`)).rejects.toThrow(/check/i);
+    });
+  });
+});

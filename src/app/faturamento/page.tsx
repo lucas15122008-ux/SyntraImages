@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { DailyChart } from '@/components/revenue/DailyChart';
+import { MonthGoal } from '@/components/revenue/MonthGoal';
 import { Delta, Kpi, PERIOD_LABEL } from '@/components/revenue/Kpi';
 import { PeriodTabs, ShareBar, Stagger, StaggerRow, StaggerRows } from '@/components/revenue/RevenueMotion';
 import { count, dayLabel, money, percent } from '@/components/revenue/format';
 import { Icon } from '@/components/ui/Icon';
+import { goalProgress, monthKey, monthName, monthRange, type GoalProgress } from '@/lib/ml/goal';
+import { getRevenueGoal } from '@/lib/ml/goal-actions';
 import { getConnectionStatus, mlGet, MlNotConnectedError } from '@/lib/ml/connection';
 import { fetchOrders, PERIODS, periodRanges, summarizeRevenue, type Period, type Revenue, type SearchPage } from '@/lib/ml/revenue';
 import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
@@ -17,6 +20,24 @@ async function load(sellerId: number, days: Period): Promise<{ now: Revenue; bef
   const get = (path: string) => mlGet<SearchPage>(path);
   const [a, b] = await Promise.all([fetchOrders(sellerId, current, get), fetchOrders(sellerId, previous, get)]);
   return { now: summarizeRevenue(a, current), before: summarizeRevenue(b, previous) };
+}
+
+/**
+ * Progresso da meta do mês; só busca os pedidos do mês quando há meta definida.
+ * Se der errado, a meta some da tela (undefined) sem derrubar o resto do faturamento.
+ */
+async function loadGoal(sellerId: number): Promise<GoalProgress | null | undefined> {
+  try {
+    const goal = await getRevenueGoal();
+    if (goal === null) return null;
+    const now = new Date();
+    const range = monthRange(now);
+    const orders = await fetchOrders(sellerId, range, (path) => mlGet<SearchPage>(path));
+    return goalProgress(goal, summarizeRevenue(orders, range, 0), now);
+  } catch (e) {
+    console.error('[ml] meta do mês', e instanceof Error ? e.message : e);
+    return undefined;
+  }
 }
 
 export default async function RevenuePage({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
@@ -59,9 +80,10 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   }
 
   let data: { now: Revenue; before: Revenue } | null = null;
+  let goal: GoalProgress | null | undefined;
   let error: string | null = null;
   try {
-    data = await load(connection.mlUserId, days);
+    [data, goal] = await Promise.all([load(connection.mlUserId, days), loadGoal(connection.mlUserId)]);
   } catch (e) {
     error = e instanceof MlNotConnectedError ? e.message : 'Não foi possível buscar os pedidos no Mercado Livre agora. Tente de novo em instantes.';
     console.error('[ml] faturamento', e instanceof Error ? e.message : e);
@@ -70,6 +92,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   return (
     <main className="settings-page revenue">
       {head}
+      {goal !== undefined && <MonthGoal month={monthName(monthKey())} progress={goal} />}
       <PeriodTabs items={PERIODS.map((p) => ({ value: p, label: PERIOD_LABEL[p] }))} current={days} basePath="/faturamento" />
 
       {error && (

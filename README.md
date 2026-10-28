@@ -33,6 +33,8 @@ No **SQL Editor** do Supabase, rode, nesta ordem, o conteúdo de:
 4. `supabase/migrations/0004_revenue_goal.sql` (meta de faturamento do mês)
 5. `supabase/migrations/0005_photo_switches.sql` (dia em que cada anúncio passou a usar as fotos do Syntra, usado no Foto x venda)
 6. `supabase/migrations/0006_item_costs.sql` (custo de cada anúncio, usado no simulador de promoções)
+7. `supabase/migrations/0007_custom_photos.sql` (fotos personalizadas)
+8. `supabase/migrations/0008_api_keys.sql` (chaves da API de fotos e do conector MCP)
 
 (Com a CLI do Supabase: `supabase link` e `supabase db push`.)
 
@@ -108,6 +110,10 @@ Entre como administrador, abra **Fotos da loja** e envie as duas artes (JPEG, PN
 1. No [DevCenter](https://developers.mercadolivre.com.br/devcenter), crie o app com a URL de retorno `https://<seu-domínio>/api/ml/callback` (a mesma do site na Vercel).
 2. Preencha `ML_CLIENT_ID`, `ML_CLIENT_SECRET` e `ML_TOKEN_KEY` na Vercel e faça um novo deploy.
 3. Entre como administrador, abra **Mercado Livre** e clique em **Conectar Mercado Livre**. Os tokens ficam criptografados no Supabase, numa tabela que o navegador não consegue ler, e são renovados sozinhos.
+
+### 11. API de fotos e conector do Claude (opcional)
+
+Em **Gestão → API e MCP**, o administrador cria uma chave e copia o endereço do conector. No Claude: **Configurações → Conectores → Adicionar conector personalizado** e cole o endereço. Detalhes e exemplos em `docs/api.md`.
 
 ## Como usar
 

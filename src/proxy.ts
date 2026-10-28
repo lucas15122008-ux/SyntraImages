@@ -2,9 +2,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 const PUBLIC_PATHS = ['/login', '/auth/confirm'];
+/** API de fotos e servidor MCP: entram com chave de acesso, não com a sessão do navegador. */
+const API_KEY_PATHS = ['/api/v1/', '/api/mcp'];
 
 /** Renova a sessão e leva visitantes sem login para /login. */
 export async function proxy(request: NextRequest) {
+  if (API_KEY_PATHS.some((p) => request.nextUrl.pathname.startsWith(p))) return NextResponse.next();
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {

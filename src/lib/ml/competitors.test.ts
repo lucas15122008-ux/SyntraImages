@@ -134,4 +134,23 @@ describe('radar de um anúncio', () => {
     expect(row.gap).toBeNull();
     expect(row.others.map((r) => r.itemId)).toEqual(['MLB-GOL', 'MLB-UP', 'MLB-UP2']);
   });
+
+  test('usa o preço da promoção do nosso anúncio, não o preço cheio do /items', async () => {
+    const promo = { ...api, '/items/MLB1/sale_price': { amount: 238, regular_amount: 264.3 } };
+    const g = (async (path: string) => {
+      const key = path.split('?')[0];
+      if (key in promo) return promo[key as keyof typeof promo];
+      throw new Error('404');
+    }) as <T>(path: string) => Promise<T>;
+    const row = await radarFor({ itemId: 'MLB1', title: UP, units: 1, gross: 1 }, ME, g);
+    expect(row.price).toBe(238);
+    expect(row.originalPrice).toBe(264.3);
+    expect(row.gap).toBeCloseTo((238 - 240) / 240);
+  });
+
+  test('sem promoção (ou sale_price fora do ar), fica o preço do anúncio', async () => {
+    const row = await radarFor({ itemId: 'MLB1', title: UP, units: 1, gross: 1 }, ME, get);
+    expect(row.price).toBe(264.3);
+    expect(row.originalPrice).toBeNull();
+  });
 });

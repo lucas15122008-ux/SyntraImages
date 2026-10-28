@@ -87,7 +87,9 @@ async function RadarCard({ top, sellerId }: { top: TopItem; sellerId: number }) 
           </p>
         </div>
         <div className="radar-me">
-          <strong>{money(row.price)}</strong>
+          <strong>
+            {row.originalPrice && <s className="muted">{money(row.originalPrice)}</s>} {money(row.price)}
+          </strong>
           <span className="muted">nosso preço{row.active ? '' : ' (anúncio pausado)'}</span>
         </div>
       </div>

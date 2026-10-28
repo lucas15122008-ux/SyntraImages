@@ -35,6 +35,7 @@ const PATHS = {
   chart: 'M4 20V11M10 20V5M16 20v-6M21 20H3',
   layers: 'M12 3 2 8l10 5 10-5zM2 13l10 5 10-5M2 17.5l10 5 10-5',
   bookmark: 'M6 3h12v18l-6-4-6 4z',
+  pen: 'M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4',
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5l3 2',
   flag: 'M5 21V4M5 4h12l-2 4 2 4H5',
   menu: 'M4 7h16M4 12h16M4 17h16',

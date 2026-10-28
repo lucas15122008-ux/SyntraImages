@@ -34,6 +34,7 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
       position: r.position,
       kind: r.kind,
       type: r.type,
+      customLabel: r.custom_label ?? null,
       status: r.status,
       url: isReadyForDownload(r.status, !!r.storage_path) ? await sign(r.kind === 'fixed' ? 'store' : 'generated', r.storage_path) : null,
       version: r.storage_path,

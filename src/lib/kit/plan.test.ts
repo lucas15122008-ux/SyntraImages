@@ -110,3 +110,36 @@ describe('validateConfig', () => {
     expect(validateConfig(base({ total: Number.NaN }))).toHaveLength(1);
   });
 });
+
+describe('fotos personalizadas', () => {
+  const custom = { label: ' Na bancada ', prompt: ' peça sobre bancada de madeira ' };
+
+  test('a foto custom leva o texto limpo para o slot e não tem aviso de ângulo', () => {
+    const plan = planKit(base({ types: ['white_front', 'custom'], custom: [null, custom] }));
+    expect(plan[2]).toMatchObject({ type: 'custom', custom: { label: 'Na bancada', prompt: 'peça sobre bancada de madeira' }, warnMissingAngle: false });
+    expect(plan[1].custom).toBeUndefined();
+  });
+
+  test('sem nome, a foto vira "Personalizada"', () => {
+    const plan = planKit(base({ types: ['custom'], custom: [{ label: '', prompt: 'cena' }] }));
+    expect(plan[1].custom).toEqual({ label: 'Personalizada', prompt: 'cena' });
+  });
+
+  test('foto custom sem descrição não passa e cita a posição', () => {
+    expect(validateConfig(base({ types: ['white_front', 'custom'], custom: [null, { label: 'x', prompt: '  ' }] }))).toEqual([
+      expect.stringMatching(/Descreva a foto personalizada \(posição 3\)/),
+    ]);
+    expect(validateConfig(base({ types: ['custom'] }))).toHaveLength(1);
+    expect(validateConfig(base({ types: ['custom'], custom: [custom] }))).toEqual([]);
+  });
+
+  test('custom fora do kit (além das fotos do meio) não conta', () => {
+    expect(validateConfig(base({ total: 4, types: ['white_front', 'custom'] }))).toEqual([]);
+  });
+
+  test('descrição longa demais não passa', () => {
+    expect(validateConfig(base({ types: ['custom'], custom: [{ label: '', prompt: 'a'.repeat(601) }] }))).toEqual([
+      expect.stringMatching(/600 caracteres/),
+    ]);
+  });
+});

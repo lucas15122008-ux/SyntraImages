@@ -17,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ kitId: 
   const kit = await store.getKit(kitId);
   if (!kit) return NextResponse.json({ error: 'Kit não encontrado.' }, { status: 404 });
 
-  const { data: rows, error } = await sb.from('kit_photos').select('position, kind, type, status, storage_path').eq('kit_id', kitId).order('position');
+  const { data: rows, error } = await sb.from('kit_photos').select('*').eq('kit_id', kitId).order('position');
   if (error || !rows?.length) return NextResponse.json({ error: 'Não foi possível ler as fotos do kit.' }, { status: 500 });
   if (rows.some((r) => !r.storage_path || !isReadyForDownload(r.status, true))) {
     return NextResponse.json({ error: 'Ainda há fotos sendo geradas ou com falha. Termine o kit antes de baixar.' }, { status: 409 });
@@ -28,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ kitId: 
   const photos = await Promise.all(
     rows.map(async (r) => {
       const normalized = await normalizeImage(await store.getFile(r.kind === 'fixed' ? 'store' : 'generated', r.storage_path!), config);
-      const name = r.kind === 'cover' ? `${product}-capa` : r.kind === 'fixed' ? `${product}-loja` : `${product}-${r.type ?? 'foto'}`;
+      const name = r.kind === 'cover' ? `${product}-capa` : r.kind === 'fixed' ? `${product}-loja` : `${product}-${r.type === 'custom' ? slugName(r.custom_label || 'personalizada') : (r.type ?? 'foto')}`;
       return { position: r.position as number, name, bytes: normalized.bytes, ext: normalized.ext };
     }),
   );

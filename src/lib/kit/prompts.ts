@@ -16,7 +16,7 @@ const FORMAT = 'Imagem quadrada, peça centralizada e inteira no quadro, sem tex
 
 const WHITE = 'fundo branco de estúdio, iluminação suave e uniforme, sombra leve sob a peça';
 
-const BY_TYPE: Record<PhotoType, string> = {
+const BY_TYPE: Record<Exclude<PhotoType, 'custom'>, string> = {
   white_front: `Foto de e-commerce da peça vista de frente, em ${WHITE}.`,
   white_side: `Foto de e-commerce da peça vista de lado, em ${WHITE}.`,
   white_detail: `Foto de e-commerce em close de um detalhe importante da peça (furos, rosca, encaixes ou acabamento), em ${WHITE}.`,
@@ -43,7 +43,13 @@ export function buildPrompt(slot: Slot, ctx: PromptContext): BuiltPrompt {
     scene = cover(ctx.car);
   } else {
     if (!slot.type) throw new Error('A foto gerada precisa de um tipo.');
-    scene = BY_TYPE[slot.type];
+    if (slot.type === 'custom') {
+      if (!slot.custom?.prompt.trim()) throw new Error('A foto personalizada precisa de uma descrição.');
+      // A cena vem antes das regras de fidelidade: a equipe escolhe o cenário, nunca muda a peça.
+      scene = `Foto de e-commerce com esta cena, descrita pela equipe: ${slot.custom.prompt.trim()}`;
+    } else {
+      scene = BY_TYPE[slot.type];
+    }
   }
 
   const useExtra = ctx.hasExtraReference && MODEL_MAX_INPUT_IMAGES >= 2;

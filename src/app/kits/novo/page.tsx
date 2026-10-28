@@ -1,5 +1,6 @@
 import { KitSteps } from '@/components/layout/KitSteps';
 import { NewKitScreen } from '@/components/kit/NewKitScreen';
+import { listCustomTypes } from '@/lib/kit/custom-types';
 import { listTemplates } from '@/lib/kit/templates';
 import { getStoreAssets } from '@/lib/store/actions';
 import { requireUser } from '@/lib/supabase/server';
@@ -9,7 +10,7 @@ export const metadata = { title: 'Montar o kit' };
 
 export default async function NewKitPage() {
   await requireUser();
-  const [templates, assets] = await Promise.all([listTemplates(), getStoreAssets()]);
+  const [templates, assets, savedCustom] = await Promise.all([listTemplates(), getStoreAssets(), listCustomTypes()]);
   return (
     <>
       <div className="page-head">
@@ -19,7 +20,7 @@ export default async function NewKitPage() {
         </div>
         <KitSteps current={1} />
       </div>
-      <NewKitScreen templates={templates} storeReady={!!assets[0] && !!assets[1]} />
+      <NewKitScreen templates={templates} storeReady={!!assets[0] && !!assets[1]} savedCustom={savedCustom} />
     </>
   );
 }

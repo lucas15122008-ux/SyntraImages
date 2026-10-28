@@ -248,3 +248,45 @@ describe('BuildKit: modelos de kit', () => {
     expect(prepare.mock.calls.map((c) => c[1])).toEqual([1_600_000, 1_600_000]);
   });
 });
+
+describe('BuildKit: foto personalizada', () => {
+  test('escolher "Personalizada" abre a descrição e manda o texto no config', async () => {
+    const { onCreate } = setup();
+    fireEvent.change(screen.getByLabelText('Tipo da foto 3'), { target: { value: 'custom' } });
+    fireEvent.change(screen.getByLabelText('Nome da foto 3'), { target: { value: 'Bancada' } });
+    fireEvent.change(screen.getByLabelText('Descrição da foto 3'), { target: { value: 'peça sobre bancada de madeira' } });
+    fillValid();
+    fireEvent.click(screen.getByRole('button', { name: 'Gerar fotos' }));
+    await waitFor(() => expect(onCreate).toHaveBeenCalled());
+    const config = JSON.parse(String((onCreate.mock.calls[0][0] as FormData).get('config'))) as KitConfig;
+    expect(config.types[1]).toBe('custom');
+    expect(config.custom?.[1]).toEqual({ label: 'Bancada', prompt: 'peça sobre bancada de madeira' });
+    expect(config.custom?.[0]).toBeNull();
+  });
+
+  test('sem descrição não gera e marca o campo', () => {
+    const { onCreate } = setup();
+    fireEvent.change(screen.getByLabelText('Tipo da foto 2'), { target: { value: 'custom' } });
+    fillValid();
+    fireEvent.click(screen.getByRole('button', { name: 'Gerar fotos' }));
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(screen.getByText(/Descreva a foto personalizada \(posição 2\)/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Descrição da foto 2')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  test('salvar deixa a foto na lista "Salvas pela equipe" e escolher uma salva preenche o texto', async () => {
+    const onSaveCustom = vi.fn().mockResolvedValue({ id: 's1', name: 'Bancada', prompt: 'peça na bancada' });
+    setup({ onSaveCustom, savedCustom: [{ id: 's0', name: 'Com pneu', prompt: 'peça ao lado de um pneu' }] });
+    fireEvent.change(screen.getByLabelText('Tipo da foto 2'), { target: { value: 'custom' } });
+    fireEvent.change(screen.getByLabelText('Nome da foto 2'), { target: { value: 'Bancada' } });
+    fireEvent.change(screen.getByLabelText('Descrição da foto 2'), { target: { value: 'peça na bancada' } });
+    fireEvent.click(screen.getByRole('button', { name: /Salvar para usar de novo/ }));
+    await waitFor(() => expect(screen.getByText('salva')).toBeInTheDocument());
+    expect(onSaveCustom).toHaveBeenCalledWith('Bancada', 'peça na bancada');
+    expect(screen.getByLabelText('Tipo da foto 2')).toHaveValue('saved:s1');
+
+    fireEvent.change(screen.getByLabelText('Tipo da foto 4'), { target: { value: 'saved:s0' } });
+    expect(screen.getByLabelText('Descrição da foto 4')).toHaveValue('peça ao lado de um pneu');
+    expect(screen.getByLabelText('Nome da foto 4')).toHaveValue('Com pneu');
+  });
+});

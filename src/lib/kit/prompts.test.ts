@@ -91,3 +91,18 @@ describe('buildPrompt', () => {
     vi.resetModules();
   });
 });
+
+describe('buildPrompt: foto personalizada', () => {
+  const slot: Slot = { position: 3, kind: 'generated', type: 'custom', custom: { label: 'Bancada', prompt: 'a peça sobre uma bancada de madeira' }, warnMissingAngle: false };
+
+  test('usa a cena escrita pela equipe e mantém fidelidade e formato depois dela', () => {
+    const { text } = buildPrompt(slot, ctx);
+    expect(text).toContain('a peça sobre uma bancada de madeira');
+    expect(text.indexOf('bancada')).toBeLessThan(text.indexOf('idêntica à da foto de referência'));
+    expect(text).toMatch(/quadrada/);
+  });
+
+  test('sem descrição, recusa', () => {
+    expect(() => buildPrompt({ ...slot, custom: undefined }, ctx)).toThrow(/descrição/);
+  });
+});

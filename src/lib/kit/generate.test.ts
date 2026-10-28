@@ -390,3 +390,25 @@ describe('startOfDayBR', () => {
     expect(startOfDayBR(new Date('2026-10-16T02:59:00Z')).toISOString()).toBe('2026-10-15T03:00:00.000Z');
   });
 });
+
+describe('fotos personalizadas', () => {
+  test('a foto custom grava nome e descrição; as outras não mandam as colunas novas', async () => {
+    const f = fakeStore();
+    await createKit(input({ config: config({ types: ['white_front', 'custom'], custom: [null, { label: 'Bancada', prompt: 'peça na bancada' }] }) }), {
+      store: f.store,
+    });
+    const rows = f.photos();
+    expect(rows.find((r) => r.position === 3)).toMatchObject({ type: 'custom', custom_label: 'Bancada', custom_prompt: 'peça na bancada' });
+    expect(rows.filter((r) => r.position !== 3).every((r) => !('custom_prompt' in r))).toBe(true);
+  });
+
+  test('gerar a foto custom manda a descrição para a IA', async () => {
+    const f = fakeStore();
+    const generate = vi.fn<GenerateFn>().mockResolvedValue(okImage);
+    vi.stubEnv('DAILY_GENERATION_LIMIT', '50');
+    const kitId = await kitWith(f, { types: ['custom', 'white_back'], custom: [{ label: '', prompt: 'peça ao lado de um pneu' }, null] });
+    await generatePhoto(kitId, 2, { store: f.store, generate });
+    expect(generate.mock.calls[0][0].prompt).toContain('peça ao lado de um pneu');
+    expect(f.photos().find((p) => p.position === 2)!.status).toBe('done');
+  });
+});

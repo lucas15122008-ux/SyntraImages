@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
 import { GenerationError } from '@/lib/openrouter/client';
-import { createKit, generatePhoto, startOfDayBR, type GenerateFn } from './generate';
+import { createKit, deleteKitWithFiles, generatePhoto, startOfDayBR, type GenerateFn } from './generate';
 import { fakeStore, file, jpegBytes, pngBytes, webpBytes } from './testing';
 import type { KitConfig } from './types';
 
@@ -335,5 +335,42 @@ describe('fotos personalizadas', () => {
     await generatePhoto(kitId, 2, { store: f.store, generate });
     expect(generate.mock.calls[0][0].prompt).toContain('peça ao lado de um pneu');
     expect(f.photos().find((p) => p.position === 2)!.status).toBe('done');
+  });
+});
+
+describe('deleteKitWithFiles', () => {
+  test('apaga o kit, as fotos, a original e as geradas, mas não as artes da loja', async () => {
+    const f = fakeStore();
+    const generate = vi.fn<GenerateFn>().mockResolvedValue(okImage);
+    vi.stubEnv('DAILY_GENERATION_LIMIT', '50');
+    const kitId = await kitWith(f);
+    await generatePhoto(kitId, 1, { store: f.store, generate });
+    await generatePhoto(kitId, 2, { store: f.store, generate });
+    f.files.set('store/loja-0.jpg', jpegBytes());
+    expect([...f.files.keys()].some((k) => k.startsWith('generated/'))).toBe(true);
+
+    await deleteKitWithFiles(kitId, { store: f.store });
+
+    expect(f.kits.has(kitId)).toBe(false);
+    expect(f.photos().filter((p) => p.kit_id === kitId)).toEqual([]);
+    expect([...f.files.keys()].filter((k) => k.includes(kitId))).toEqual([]);
+    expect(f.files.has('store/loja-0.jpg')).toBe(true);
+    expect(f.writes).not.toContain('rm:store/loja-0.jpg');
+  });
+
+  test('kit que não existe (ou de outra conta) dá erro e não apaga nada', async () => {
+    const f = fakeStore();
+    await expect(deleteKitWithFiles('nao-existe', { store: f.store })).rejects.toThrow('Kit não encontrado.');
+    expect(f.writes).not.toContain('deleteKit');
+  });
+
+  test('se um arquivo não sair, o kit continua excluído', async () => {
+    const f = fakeStore();
+    const kitId = await kitWith(f);
+    f.store.removeFile = async () => {
+      throw new Error('storage fora do ar');
+    };
+    await deleteKitWithFiles(kitId, { store: f.store });
+    expect(f.kits.has(kitId)).toBe(false);
   });
 });

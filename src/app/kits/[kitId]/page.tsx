@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { PublishForm } from '@/components/impact/PublishForm';
+import { DeleteKitButton } from '@/components/kit/DeleteKitButton';
 import { KitScreen } from '@/components/kit/KitScreen';
 import { dayLabel } from '@/components/revenue/format';
 import { KitSteps } from '@/components/layout/KitSteps';
@@ -56,7 +57,10 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
           <h1>Revisar fotos</h1>
           <p className="sub">Confira cada foto ao lado da original. Refaça só as que não servem e baixe o kit.</p>
         </div>
-        <KitSteps current={allReady ? 3 : 2} />
+        <div className="page-actions">
+          <KitSteps current={allReady ? 3 : 2} />
+          <DeleteKitButton kitId={kitId} name={kit.product_name} />
+        </div>
       </div>
       <KitScreen kitId={kitId} title={car ? `${kit.product_name} · ${car}` : kit.product_name} originalUrl={originalUrl} photos={photos} />
       {allReady && (

@@ -167,3 +167,22 @@ export async function generatePhoto(
     await store.updatePhoto(claimed.id, { status: 'failed', error: failureMessage(e), generating_since: null });
   }
 }
+
+/**
+ * Exclui o kit de vez: a linha do kit (as fotos saem junto, em cascata), a foto original,
+ * a referência extra e as fotos geradas. As artes fixas da loja ficam, porque são de todos os kits.
+ * Apaga o banco primeiro: se algum arquivo não sair, sobra só um arquivo solto, nunca um kit quebrado.
+ */
+export async function deleteKitWithFiles(kitId: string, deps: { store?: KitStore } = {}): Promise<void> {
+  const store = deps.store ?? (await getKitStore());
+  const kit = await store.getKit(kitId);
+  if (!kit) throw new Error('Kit não encontrado.');
+  const generated = (await store.listPhotos(kitId))
+    .filter((p) => p.kind !== 'fixed' && p.storage_path)
+    .map((p) => p.storage_path!);
+  const originals = [kit.original_path, kit.extra_reference_path].filter((p): p is string => !!p);
+
+  await store.deleteKit(kitId);
+  for (const path of generated) await store.removeFile('generated', path).catch(() => {});
+  for (const path of originals) await store.removeFile('originals', path).catch(() => {});
+}

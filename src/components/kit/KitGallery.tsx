@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useMotionPresets } from '@/components/motion/presets';
 import { Icon } from '@/components/ui/Icon';
+import { DeleteKitButton } from './DeleteKitButton';
 import type { KitSummary } from '@/lib/kit/summary';
 
 export type KitCardData = {
@@ -42,7 +43,7 @@ export function KitGallery({ kits }: { kits: KitCardData[] }) {
         </Link>
       </motion.li>
       {kits.map((k) => (
-        <motion.li key={k.id} variants={listItem}>
+        <motion.li key={k.id} variants={listItem} className="kit-item">
           <Link className="kit-card" href={`/kits/${k.id}`}>
             <div className="cover">
               {k.thumbUrl ? (
@@ -69,6 +70,7 @@ export function KitGallery({ kits }: { kits: KitCardData[] }) {
               </span>
             </div>
           </Link>
+          <DeleteKitButton kitId={k.id} name={k.name} compact />
         </motion.li>
       ))}
     </motion.ul>

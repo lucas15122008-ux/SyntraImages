@@ -1,7 +1,8 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { getSupabaseServer } from '@/lib/supabase/server';
-import { createKit } from './generate';
+import { createKit, deleteKitWithFiles } from './generate';
 import type { KitConfig } from './types';
 
 export type CreateKitResult = { ok: true; kitId: string } | { ok: false; error: string };
@@ -31,4 +32,17 @@ export async function setPhotoWarning(kitId: string, position: number, on: boole
   const patch = on ? { warn_missing_angle: true, warn_dismissed: false } : { warn_missing_angle: false, warn_dismissed: true };
   const { error } = await sb.from('kit_photos').update(patch).eq('kit_id', kitId).eq('position', position);
   if (error) throw new Error('Não foi possível atualizar o aviso da foto.');
+}
+
+export type DeleteKitResult = { ok: true } | { ok: false; error: string };
+
+/** Exclui o kit da conta com todas as fotos e arquivos. */
+export async function deleteKitAction(kitId: string): Promise<DeleteKitResult> {
+  try {
+    await deleteKitWithFiles(kitId);
+    revalidatePath('/');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Não foi possível excluir o kit.' };
+  }
 }

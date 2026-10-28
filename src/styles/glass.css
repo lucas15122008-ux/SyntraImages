@@ -430,6 +430,14 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 .kit-card .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--muted); }
 .kit-card .meta span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kit-card .progress { height: 5px; margin-top: 4px; }
+.kit-item { position: relative; }
+.kit-delete { position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--glass-edge); background: var(--panel-strong); color: var(--muted); cursor: pointer; opacity: 0; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: opacity 0.2s var(--ease), color 0.2s var(--ease); }
+.kit-item:hover .kit-delete, .kit-delete:focus-visible { opacity: 1; }
+.kit-delete:hover:not(:disabled) { color: var(--danger); }
+.kit-delete:disabled { cursor: wait; opacity: 0.6; }
+@media (hover: none) { .kit-delete { opacity: 1; } }
+.page-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.btn.ghost.danger { color: var(--danger); }
 .kit-new { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 260px; border-radius: 22px; border: 1.5px dashed color-mix(in srgb, var(--accent) 40%, var(--line)); color: var(--accent); text-decoration: none; font-weight: 600; background: color-mix(in srgb, var(--field) 60%, transparent); transition: background 0.25s, border-color 0.25s, transform 0.35s var(--ease); }
 .kit-new:hover { background: var(--field-hover); border-color: var(--accent); transform: translateY(-4px); }
 .kit-new .drop-icon { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--accent); color: #fff; box-shadow: 0 8px 20px var(--accent-glow); }

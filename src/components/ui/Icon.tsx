@@ -40,6 +40,7 @@ const PATHS = {
   flag: 'M5 21V4M5 4h12l-2 4 2 4H5',
   menu: 'M4 7h16M4 12h16M4 17h16',
   sidebar: 'M4 5h16v14H4zM9 5v14',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5',
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -205,3 +205,18 @@ describe('conexão com o Mercado Livre', () => {
   });
 });
 
+
+describe('chaves da API', () => {
+  test('ninguém pelo navegador lê ou cria chaves, nem o admin', async () => {
+    await db.query(`insert into public.api_keys (name, user_id, key_hash, key_prefix) values ('mcp', $1, 'h1', 'syn_ab')`, [ADMIN]);
+    for (const user of [ALICE, ADMIN]) {
+      const seen = await as(user, () => db.query(`select * from public.api_keys`));
+      expect(seen.rows).toHaveLength(0);
+      await denied(
+        as(user, () => db.query(`insert into public.api_keys (name, user_id, key_hash, key_prefix) values ('x', $1, 'h2', 'syn_cd')`, [user])),
+      );
+    }
+    const all = await db.query(`select * from public.api_keys`);
+    expect(all.rows).toHaveLength(1);
+  });
+});

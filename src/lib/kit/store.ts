@@ -12,6 +12,7 @@ export type KitRow = {
   config: KitConfig;
   original_path: string;
   extra_reference_path: string | null;
+  created_at?: string;
 };
 
 export type PhotoRow = {
@@ -48,6 +49,12 @@ export interface KitStore {
   deleteKit(kitId: string): Promise<void>;
   getKit(kitId: string): Promise<KitRow | null>;
   getPhoto(kitId: string, position: number): Promise<PhotoRow | null>;
+  /** Fotos do kit em ordem de posição. */
+  listPhotos(kitId: string): Promise<PhotoRow[]>;
+  /** Kits mais recentes da conta. */
+  listKits(limit: number): Promise<KitRow[]>;
+  /** Link temporário para ver um arquivo privado. */
+  signedUrl(bucket: Bucket, path: string, seconds: number): Promise<string>;
   /**
    * Passa a foto para `generating` de forma atômica e soma uma tentativa.
    * Devolve null se outra geração já está em andamento (a menos que esteja travada
@@ -69,16 +76,47 @@ function fail(what: string, error: { message: string } | null): never {
   throw new Error(`${what}: ${error?.message ?? 'erro desconhecido'}`);
 }
 
+type Supabase = ReturnType<typeof getSupabaseAdmin>;
+
 /** Implementação com o Supabase: banco e storage sob o RLS do usuário; o log de gerações usa a chave de serviço. */
 export async function getKitStore(): Promise<KitStore> {
   const user = await requireUser();
-  const sb = await getSupabaseServer();
+  return supabaseKitStore({ userId: user.id, sb: (await getSupabaseServer()) as unknown as Supabase, getStoreAssets });
+}
+
+/**
+ * Para a API (chave de acesso, sem sessão): usa a chave de serviço, então o RLS não vale e
+ * o filtro pelo dono é feito aqui. Kits de outras contas aparecem como "não encontrado".
+ */
+export function getKitStoreForUser(userId: string): KitStore {
+  const admin = getSupabaseAdmin();
+  return supabaseKitStore({
+    userId,
+    sb: admin,
+    ownerScope: userId,
+    async getStoreAssets() {
+      const { data, error } = await admin.from('store_assets').select('slot, storage_path');
+      if (error) throw new Error('Não foi possível ler as artes da loja.');
+      const find = (slot: 0 | 1) => ((data ?? []) as StoreAsset[]).find((a) => a.slot === slot) ?? null;
+      return [find(0), find(1)];
+    },
+  });
+}
+
+function supabaseKitStore(opts: {
+  userId: string;
+  sb: Supabase;
+  /** Só com a chave de serviço: grava o dono e filtra kits e fotos por ele. */
+  ownerScope?: string;
+  getStoreAssets: KitStore['getStoreAssets'];
+}): KitStore {
+  const { userId, sb, ownerScope } = opts;
   const admin = getSupabaseAdmin();
 
   const store: KitStore = {
-    currentUserId: async () => user.id,
+    currentUserId: async () => userId,
 
-    getStoreAssets: () => getStoreAssets(),
+    getStoreAssets: opts.getStoreAssets,
 
     async putFile(bucket, path, bytes, mime) {
       const { error } = await sb.storage.from(bucket).upload(path, bytes, { contentType: mime, upsert: false });
@@ -97,7 +135,8 @@ export async function getKitStore(): Promise<KitStore> {
     },
 
     async insertKit(row) {
-      const { error } = await sb.from('kits').insert(row);
+      const values: Omit<KitRow, 'owner'> & { owner?: string } = ownerScope ? { ...row, owner: ownerScope } : row;
+      const { error } = await sb.from('kits').insert(values);
       if (error) fail('Falha ao criar o kit', error);
     },
 
@@ -107,20 +146,46 @@ export async function getKitStore(): Promise<KitStore> {
     },
 
     async deleteKit(kitId) {
-      const { error } = await sb.from('kits').delete().eq('id', kitId);
+      let q = sb.from('kits').delete().eq('id', kitId);
+      if (ownerScope) q = q.eq('owner', ownerScope);
+      const { error } = await q;
       if (error) fail('Falha ao apagar o kit', error);
     },
 
     async getKit(kitId) {
-      const { data, error } = await sb.from('kits').select('*').eq('id', kitId).maybeSingle();
+      let q = sb.from('kits').select('*').eq('id', kitId);
+      if (ownerScope) q = q.eq('owner', ownerScope);
+      const { data, error } = await q.maybeSingle();
       if (error) fail('Falha ao ler o kit', error);
       return (data as KitRow | null) ?? null;
     },
 
     async getPhoto(kitId, position) {
+      if (ownerScope && !(await store.getKit(kitId))) return null;
       const { data, error } = await sb.from('kit_photos').select('*').eq('kit_id', kitId).eq('position', position).maybeSingle();
       if (error) fail('Falha ao ler a foto', error);
       return data ? toPhoto(data as RawPhoto) : null;
+    },
+
+    async listPhotos(kitId) {
+      if (ownerScope && !(await store.getKit(kitId))) return [];
+      const { data, error } = await sb.from('kit_photos').select('*').eq('kit_id', kitId).order('position');
+      if (error) fail('Falha ao ler as fotos do kit', error);
+      return ((data ?? []) as RawPhoto[]).map(toPhoto);
+    },
+
+    async listKits(limit) {
+      let q = sb.from('kits').select('*');
+      if (ownerScope) q = q.eq('owner', ownerScope);
+      const { data, error } = await q.order('created_at', { ascending: false }).limit(limit);
+      if (error) fail('Falha ao ler os kits', error);
+      return (data ?? []) as KitRow[];
+    },
+
+    async signedUrl(bucket, path, seconds) {
+      const { data, error } = await sb.storage.from(bucket).createSignedUrl(path, seconds);
+      if (error || !data) fail('Falha ao criar o link da foto', error);
+      return data.signedUrl;
     },
 
     async claimPhoto(kitId, position, staleBefore) {
@@ -149,7 +214,7 @@ export async function getKitStore(): Promise<KitStore> {
     },
 
     async logGeneration(kitId, position) {
-      const { error } = await admin.from('generation_log').insert({ user_id: user.id, kit_id: kitId, position });
+      const { error } = await admin.from('generation_log').insert({ user_id: userId, kit_id: kitId, position });
       if (error) fail('Falha ao registrar a geração', error);
     },
 

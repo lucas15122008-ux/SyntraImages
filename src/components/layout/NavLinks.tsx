@@ -36,6 +36,7 @@ export function navGroups(isAdmin: boolean): Group[] {
               { href: '/foto-x-venda', label: 'Foto x venda', icon: 'sparkles' },
               { href: '/concorrentes', label: 'Concorrentes', icon: 'flag' },
               { href: '/configuracoes/equipe', label: 'Equipe', icon: 'users' },
+              { href: '/configuracoes/api', label: 'API e MCP', icon: 'lock' },
             ] as Item[],
           },
         ]

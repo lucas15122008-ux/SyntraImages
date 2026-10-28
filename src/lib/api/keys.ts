@@ -15,13 +15,16 @@ export function hashApiKey(key: string): string {
 }
 
 /**
- * Lê a chave do pedido: `Authorization: Bearer`, `X-API-Key` ou `?key=` na URL. A URL é o
- * que permite usar o MCP como conector personalizado do Claude, que não manda cabeçalhos.
+ * Lê a chave do pedido: `Authorization: Bearer`, `X-API-Key`, no caminho (`/api/mcp/syn_...`)
+ * ou `?key=` na URL. A URL é o que permite usar o MCP como conector personalizado do Claude,
+ * que não manda cabeçalhos; o caminho resiste a apps que descartam o `?` do endereço.
  */
 export function readApiKey(req: Request): string | null {
   const auth = req.headers.get('authorization');
   const bearer = auth?.match(/^Bearer\s+(\S+)$/i)?.[1];
-  const raw = bearer ?? req.headers.get('x-api-key') ?? new URL(req.url).searchParams.get('key');
+  const url = new URL(req.url);
+  const inPath = url.pathname.match(/^\/api\/mcp\/(syn_[A-Za-z0-9_-]+)\/?$/)?.[1];
+  const raw = bearer ?? req.headers.get('x-api-key') ?? inPath ?? url.searchParams.get('key');
   const key = raw?.trim();
   return key && key.startsWith(KEY_PREFIX) ? key : null;
 }

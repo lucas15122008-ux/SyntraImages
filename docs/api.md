@@ -10,11 +10,16 @@ Mande a chave de um destes jeitos:
 
 - `Authorization: Bearer syn_...` (o recomendado)
 - `X-API-Key: syn_...`
-- `?key=syn_...` na URL (é o que o conector do Claude usa, porque ele não manda cabeçalhos)
+- no endereço do MCP: `/api/mcp/syn_...` (é o que o conector do Claude usa, porque ele não manda cabeçalhos)
+- `?key=syn_...` na URL (o formato antigo; continua valendo)
 
 ## Conector MCP (Claude)
 
-Endereço: `https://<seu-app>/api/mcp?key=syn_...`
+Endereço: `https://<seu-app>/api/mcp/syn_...`
+
+Para conferir a chave, abra esse endereço no navegador: com a chave certa aparece "Chave válida"; com a chave errada ou revogada, um erro.
+
+Se o Claude mostrar "Não foi possível registrar no serviço de login" ou pedir OAuth Client ID, a chave do endereço está errada, cortada ou revogada: o Syntra não usa OAuth. Deixe o OAuth Client ID vazio.
 
 No Claude (web ou app): **Configurações → Conectores → Adicionar conector personalizado**, cole o endereço e salve. No Claude Code: `claude mcp add --transport http syntra https://<seu-app>/api/mcp --header "Authorization: Bearer syn_..."`.
 

@@ -42,7 +42,7 @@ export function ApiKeysPanel({ keys, origin }: { keys: ApiKeyRow[]; origin: stri
     setCopied(label);
   }
 
-  const mcpUrl = created ? `${origin}/api/mcp?key=${created}` : null;
+  const mcpUrl = created ? `${origin}/api/mcp/${created}` : null;
   const active = keys.filter((k) => !k.revoked_at);
 
   return (

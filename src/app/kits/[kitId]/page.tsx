@@ -59,7 +59,7 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
         </div>
         <div className="page-actions">
           <KitSteps current={allReady ? 3 : 2} />
-          <DeleteKitButton kitId={kitId} name={kit.product_name} />
+          <DeleteKitButton kitId={kitId} name={kit.product_name} thumbUrl={photos.find((p) => p.kind === 'cover')?.url ?? originalUrl} />
         </div>
       </div>
       <KitScreen kitId={kitId} title={car ? `${kit.product_name} · ${car}` : kit.product_name} originalUrl={originalUrl} photos={photos} />

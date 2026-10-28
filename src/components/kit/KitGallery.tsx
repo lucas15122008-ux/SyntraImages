@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { useMotionPresets } from '@/components/motion/presets';
 import { Icon } from '@/components/ui/Icon';
@@ -42,37 +42,45 @@ export function KitGallery({ kits }: { kits: KitCardData[] }) {
           <span className="note">Comece de uma foto da peça</span>
         </Link>
       </motion.li>
-      {kits.map((k) => (
-        <motion.li key={k.id} variants={listItem} className="kit-item">
-          <Link className="kit-card" href={`/kits/${k.id}`}>
-            <div className="cover">
-              {k.thumbUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- URL assinada do storage
-                <img src={k.thumbUrl} alt="" loading="lazy" />
-              ) : (
-                <Icon name="image" size={28} />
-              )}
-              <StatePill s={k.summary} />
-            </div>
-            <div className="body">
-              <h3>{k.name}</h3>
-              <span className="meta">
-                <span>{k.car ? <><Icon name="car" size={14} />{k.car}</> : <><Icon name="layers" size={14} />{k.summary.total} fotos</>}</span>
-                <span className="num"><Icon name="clock" size={14} />{dateFmt.format(new Date(k.createdAt))}</span>
-              </span>
-              {k.summary.warnings > 0 && (
-                <span className="meta" style={{ color: 'var(--warn)' }}>
-                  <span><Icon name="alert" size={14} />{k.summary.warnings === 1 ? '1 foto com aviso' : `${k.summary.warnings} fotos com aviso`}</span>
+      <AnimatePresence mode="popLayout">
+        {kits.map((k) => (
+          <motion.li
+            key={k.id}
+            layout={!reduced}
+            variants={listItem}
+            className="kit-item"
+            exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.85, filter: 'blur(6px)', transition: { duration: 0.3 } }}
+          >
+            <Link className="kit-card" href={`/kits/${k.id}`}>
+              <div className="cover">
+                {k.thumbUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- URL assinada do storage
+                  <img src={k.thumbUrl} alt="" loading="lazy" />
+                ) : (
+                  <Icon name="image" size={28} />
+                )}
+                <StatePill s={k.summary} />
+              </div>
+              <div className="body">
+                <h3>{k.name}</h3>
+                <span className="meta">
+                  <span>{k.car ? <><Icon name="car" size={14} />{k.car}</> : <><Icon name="layers" size={14} />{k.summary.total} fotos</>}</span>
+                  <span className="num"><Icon name="clock" size={14} />{dateFmt.format(new Date(k.createdAt))}</span>
                 </span>
-              )}
-              <span className="progress" role="progressbar" aria-label="Fotos prontas" aria-valuemin={0} aria-valuemax={k.summary.total} aria-valuenow={k.summary.ready}>
-                <span style={{ width: `${k.summary.total ? (k.summary.ready / k.summary.total) * 100 : 0}%` }} />
-              </span>
-            </div>
-          </Link>
-          <DeleteKitButton kitId={k.id} name={k.name} compact />
-        </motion.li>
-      ))}
+                {k.summary.warnings > 0 && (
+                  <span className="meta" style={{ color: 'var(--warn)' }}>
+                    <span><Icon name="alert" size={14} />{k.summary.warnings === 1 ? '1 foto com aviso' : `${k.summary.warnings} fotos com aviso`}</span>
+                  </span>
+                )}
+                <span className="progress" role="progressbar" aria-label="Fotos prontas" aria-valuemin={0} aria-valuemax={k.summary.total} aria-valuenow={k.summary.ready}>
+                  <span style={{ width: `${k.summary.total ? (k.summary.ready / k.summary.total) * 100 : 0}%` }} />
+                </span>
+              </div>
+            </Link>
+            <DeleteKitButton kitId={k.id} name={k.name} thumbUrl={k.thumbUrl} compact />
+          </motion.li>
+        ))}
+      </AnimatePresence>
     </motion.ul>
   );
 }

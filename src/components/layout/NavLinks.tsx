@@ -7,50 +7,76 @@ import { usePrefersReducedMotion } from '@/components/motion/presets';
 import { Icon, type IconName } from '@/components/ui/Icon';
 
 type Item = { href: string; label: string; icon: IconName };
+type Group = { title: string; items: Item[] };
 
 function isActive(pathname: string, href: string) {
   if (href === '/') return pathname === '/' || (pathname.startsWith('/kits/') && pathname !== '/kits/novo');
   return pathname.startsWith(href);
 }
 
-/** Navegação principal: a pílula de destaque desliza até a página atual. */
-export function NavLinks({ isAdmin }: { isAdmin: boolean }) {
-  const pathname = usePathname() ?? '/';
-  const reduced = usePrefersReducedMotion();
-  const items: Item[] = [
-    { href: '/kits/novo', label: 'Novo kit', icon: 'plus' },
-    { href: '/', label: 'Meus kits', icon: 'grid' },
-    { href: '/configuracoes/loja', label: 'Fotos da loja', icon: 'store' },
-    { href: '/configuracoes/mercado-livre', label: 'Mercado Livre', icon: 'layers' },
+/** Todas as entradas do menu, em grupos. Gestão só aparece para admin. */
+export function navGroups(isAdmin: boolean): Group[] {
+  return [
+    {
+      title: 'Fotos',
+      items: [
+        { href: '/kits/novo', label: 'Novo kit', icon: 'plus' },
+        { href: '/', label: 'Meus kits', icon: 'grid' },
+        { href: '/configuracoes/loja', label: 'Fotos da loja', icon: 'store' },
+        { href: '/configuracoes/mercado-livre', label: 'Mercado Livre', icon: 'layers' },
+      ],
+    },
     ...(isAdmin
-      ? ([
-          { href: '/faturamento', label: 'Faturamento', icon: 'chart' },
-          { href: '/promocoes', label: 'Promoções', icon: 'tag' },
-          { href: '/foto-x-venda', label: 'Foto x venda', icon: 'sparkles' },
-          { href: '/concorrentes', label: 'Concorrentes', icon: 'flag' },
-          { href: '/configuracoes/equipe', label: 'Equipe', icon: 'users' },
-        ] as Item[])
+      ? [
+          {
+            title: 'Gestão',
+            items: [
+              { href: '/faturamento', label: 'Faturamento', icon: 'chart' },
+              { href: '/promocoes', label: 'Promoções', icon: 'tag' },
+              { href: '/foto-x-venda', label: 'Foto x venda', icon: 'sparkles' },
+              { href: '/concorrentes', label: 'Concorrentes', icon: 'flag' },
+              { href: '/configuracoes/equipe', label: 'Equipe', icon: 'users' },
+            ] as Item[],
+          },
+        ]
       : []),
   ];
+}
+
+/** Navegação principal do menu lateral: a pílula de destaque desliza até a página atual. */
+export function NavLinks({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => void }) {
+  const pathname = usePathname() ?? '/';
+  const reduced = usePrefersReducedMotion();
 
   return (
     <>
-      {items.map((item) => {
-        const active = isActive(pathname, item.href);
-        return (
-          <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} aria-label={item.label}>
-            {active && (
-              <motion.span
-                layoutId="nav-pill"
-                className="nav-pill"
-                transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
-              />
-            )}
-            <Icon name={item.icon} size={16} />
-            <span className="nav-text">{item.label}</span>
-          </Link>
-        );
-      })}
+      {navGroups(isAdmin).map((group) => (
+        <div key={group.title} className="nav-group">
+          <p className="nav-group-title">{group.title}</p>
+          {group.items.map((item) => {
+            const active = isActive(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                title={item.label}
+                onClick={onNavigate}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="nav-pill"
+                    transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                  />
+                )}
+                <Icon name={item.icon} size={18} />
+                <span className="nav-text">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </>
   );
 }

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { IBM_Plex_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
-import { AppHeader } from '@/components/layout/AppHeader';
+import { AppShell } from '@/components/layout/AppShell';
 import { THEME_SCRIPT } from '@/components/layout/theme';
 import '@/styles/glass.css';
 
@@ -30,11 +30,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
-        <div className="wrap">
-          <AppHeader />
+        <AppShell>
           {children}
           <footer className="credit">Made by Pegasus</footer>
-        </div>
+        </AppShell>
         <Analytics />
       </body>
     </html>

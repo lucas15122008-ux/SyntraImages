@@ -24,6 +24,9 @@ export type MyItem = {
   shipping?: { free_shipping?: boolean; logistic_type?: string };
 };
 
+/** Preço que o comprador paga agora (/items/{id}/sale_price): já com promoção, que o /items não mostra. */
+type SalePrice = { amount?: number | null; regular_amount?: number | null };
+
 type Highlight = { id: string; position: number; type: 'USER_PRODUCT' | 'PRODUCT' | 'ITEM' | string };
 
 export type Offer = {
@@ -59,7 +62,10 @@ export type RadarRow = {
   itemId: string;
   title: string;
   link: string;
+  /** Preço de venda agora, com promoção. */
   price: number;
+  /** Preço cheio quando há promoção ativa; null sem promoção. */
+  originalPrice: number | null;
   units: number;
   gross: number;
   active: boolean;
@@ -197,12 +203,17 @@ export async function radarFor(
     `/items/${top.itemId}?attributes=id,title,price,original_price,category_id,catalog_product_id,catalog_listing,user_product_id,permalink,status,shipping`,
   );
 
-  const [category, highlights, catalogOffers] = await Promise.all([
+  const [salePrice, category, highlights, catalogOffers] = await Promise.all([
+    // O /items devolve o preço cheio mesmo com o anúncio em promoção (campanha do vendedor, oferta do dia).
+    get<SalePrice>(`/items/${me.id}/sale_price?context=channel_marketplace`).catch(() => null),
     get<{ name?: string }>(`/categories/${me.category_id}`).catch(() => null),
     get<{ content?: Highlight[] }>(`/highlights/MLB/category/${me.category_id}`).catch(() => null),
     me.catalog_product_id ? cheapestOffer(get, me.catalog_product_id) : Promise.resolve([]),
   ]);
   const categoryName = category?.name ?? null;
+  const price = salePrice?.amount || me.price;
+  const regular = salePrice?.regular_amount || me.original_price || null;
+  const originalPrice = regular && regular > price ? regular : null;
   const ranking = highlights?.content ?? [];
 
   const mine = new Set([me.id, me.user_product_id, me.catalog_listing ? me.catalog_product_id : null].filter(Boolean));
@@ -252,7 +263,8 @@ export async function radarFor(
     itemId: me.id,
     title: me.title,
     link: me.permalink,
-    price: me.price,
+    price,
+    originalPrice,
     units: top.units,
     gross: top.gross,
     active: me.status === 'active',
@@ -261,6 +273,6 @@ export async function radarFor(
     rivals,
     others: others.map(toRival),
     cheapest,
-    gap: cheapest ? (me.price - cheapest.price) / cheapest.price : null,
+    gap: cheapest ? (price - cheapest.price) / cheapest.price : null,
   };
 }

@@ -37,6 +37,8 @@ const PATHS = {
   bookmark: 'M6 3h12v18l-6-4-6 4z',
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5l3 2',
   flag: 'M5 21V4M5 4h12l-2 4 2 4H5',
+  menu: 'M4 7h16M4 12h16M4 17h16',
+  sidebar: 'M4 5h16v14H4zM9 5v14',
 } as const;
 
 export type IconName = keyof typeof PATHS;

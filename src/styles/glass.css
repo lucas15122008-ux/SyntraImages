@@ -144,7 +144,7 @@ a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness:
 
 /* ───────────── Superfícies ───────────── */
 /* Cartões sólidos com borda fina (Prumo). O vidro fica só no que flutua: lightbox e legendas sobre foto. */
-.glass, .panel, .nav, .store-asset, .kit-card, .toolbar {
+.glass, .panel, .store-asset, .kit-card, .toolbar {
   position: relative;
   background: var(--panel);
   border: 1px solid var(--glass-edge);
@@ -165,19 +165,84 @@ a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness:
 
 .app-header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; }
-.header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.nav { display: flex; gap: 2px; align-items: center; border-radius: var(--r-md); padding: 4px; }
-.nav a, .nav button { position: relative; display: inline-flex; align-items: center; gap: 7px; font: 500 14px var(--sans); border: 0; background: transparent; color: var(--muted); padding: 8px 14px; border-radius: var(--r-sm); cursor: pointer; text-decoration: none; transition: color 0.2s; }
-.nav a:hover, .nav button:hover { color: var(--ink); }
-.nav a[aria-current='page'] { color: var(--accent-ink); }
-.nav a > span:not(.nav-pill), .nav a > svg { position: relative; z-index: 1; }
-.nav-pill { position: absolute; inset: 0; border-radius: var(--r-sm); background: var(--accent); }
 .icon-btn { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; padding: 0; border: 1px solid var(--glass-edge); background: var(--panel); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: var(--ink-soft); cursor: pointer; box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge); transition: transform 0.2s var(--ease), color 0.2s; }
 .icon-btn:hover { color: var(--accent); transform: translateY(-1px); }
 .icon-btn:active { transform: scale(0.95); }
-@media (max-width: 720px) {
-  .nav a span.nav-text { display: none; }
-  .nav a, .nav button { padding: 9px 12px; }
+
+/* ───────────── Menu lateral ───────────── */
+/* Computador: painel fixo à esquerda, que pode encolher só para os ícones. Celular: gaveta pela barra do topo. */
+.shell { --sb-w: 248px; }
+.shell[data-collapsed='true'] { --sb-w: 76px; }
+.sidebar {
+  position: fixed; z-index: 40; top: 12px; bottom: 12px; left: max(12px, env(safe-area-inset-left));
+  width: var(--sb-w); display: flex; flex-direction: column; gap: 14px; padding: 14px 12px;
+  background: var(--panel); border: 1px solid var(--glass-edge); border-radius: var(--r-lg); box-shadow: var(--glass-shadow);
+  transition: width 0.28s var(--ease), transform 0.32s var(--ease);
+  overflow: hidden;
+}
+.sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 2px 0 4px; }
+.sidebar-head .brand { min-width: 0; }
+.sidebar-collapse, .sidebar-close, .side-logout {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; flex: none; border: 0; border-radius: var(--r-sm);
+  background: transparent; color: var(--muted); cursor: pointer; transition: color 0.2s, background 0.2s;
+}
+.sidebar-collapse:hover, .sidebar-close:hover, .side-logout:hover { color: var(--ink); background: var(--accent-soft); }
+.sidebar-close { display: none; }
+.side-nav { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 14px; margin: 0 -4px; padding: 0 4px; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group + .nav-group { padding-top: 14px; border-top: 1px solid var(--line); }
+.nav-group-title { font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 0 12px 6px; white-space: nowrap; transition: opacity 0.2s; }
+.side-nav a {
+  position: relative; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 13px;
+  font: 500 14px var(--sans); color: var(--muted); border-radius: var(--r-sm); text-decoration: none; white-space: nowrap; transition: color 0.2s, background 0.2s;
+}
+.side-nav a:hover { color: var(--ink); background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
+.side-nav a[aria-current='page'] { color: var(--accent-ink); background: transparent; }
+.side-nav a > span:not(.nav-pill), .side-nav a > svg { position: relative; z-index: 1; flex: none; }
+.nav-pill { position: absolute; inset: 0; border-radius: var(--r-sm); background: var(--accent); box-shadow: 0 6px 16px -8px var(--accent-glow); }
+.nav-text { transition: opacity 0.2s; }
+.sidebar-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.side-logout { display: inline-flex; align-items: center; justify-content: center; width: auto; gap: 8px; padding: 0 10px; font: 500 13.5px var(--sans); }
+
+/* Recolhido: só ícones, centralizados; os nomes aparecem na dica ao passar o mouse. */
+.shell[data-collapsed='true'] .sidebar-head { flex-direction: column; padding: 0; }
+.shell[data-collapsed='true'] .brand-text,
+.shell[data-collapsed='true'] .nav-text { opacity: 0; width: 0; overflow: hidden; }
+.shell[data-collapsed='true'] .nav-group-title { opacity: 0; height: 0; padding: 0; }
+.shell[data-collapsed='true'] .side-nav a { justify-content: center; padding: 0; gap: 0; }
+.shell[data-collapsed='true'] .sidebar-foot { flex-direction: column; }
+.shell[data-collapsed='true'] .side-logout { width: 34px; padding: 0; gap: 0; }
+
+.shell-main { padding-left: calc(var(--sb-w) + 18px); transition: padding-left 0.28s var(--ease); }
+.topbar { display: none; }
+.sidebar-scrim { display: none; }
+
+@media (max-width: 900px) {
+  .shell, .shell[data-collapsed='true'] { --sb-w: min(280px, 84vw); }
+  .shell-main { padding-left: 0; }
+  .topbar {
+    position: sticky; top: 8px; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-bottom: 18px; padding: 8px; border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--panel) 82%, transparent); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow);
+  }
+  .sidebar { transform: translateX(calc(-100% - 24px)); box-shadow: var(--glass-shadow-lift); }
+  .sidebar[data-open='true'] { transform: none; }
+  .sidebar-collapse { display: none; }
+  .sidebar-close { display: inline-grid; }
+  /* Na gaveta o menu fica sempre completo, mesmo se recolhido no computador. */
+  .shell[data-collapsed='true'] .sidebar-head { flex-direction: row; padding: 0 2px 0 4px; }
+  .shell[data-collapsed='true'] .brand-text,
+  .shell[data-collapsed='true'] .nav-text { opacity: 1; width: auto; }
+  .shell[data-collapsed='true'] .nav-group-title { opacity: 1; height: auto; padding: 0 12px 6px; }
+  .shell[data-collapsed='true'] .side-nav a { justify-content: flex-start; padding: 0 13px; gap: 12px; }
+  .shell[data-collapsed='true'] .sidebar-foot { flex-direction: row; }
+  .shell[data-collapsed='true'] .side-logout { width: auto; padding: 0 10px; gap: 8px; }
+  .sidebar-scrim { display: block; position: fixed; inset: 0; z-index: 35; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .sidebar-scrim[data-open='true'] { opacity: 1; pointer-events: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .shell-main, .sidebar-scrim { transition: none; }
 }
 
 .cols { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -296,7 +361,7 @@ input[aria-invalid='true'] { border-color: var(--warn); box-shadow: 0 0 0 3px va
 .steps li.done .dot { background: var(--ok-soft); color: var(--ok); }
 .steps .sep { width: 14px; height: 1px; background: var(--line); }
 @media (max-width: 560px) { .steps li:not([aria-current]) .step-text { display: none; } .steps li:not([aria-current]) { padding: 6px; } }
-@media (max-width: 480px) { .brand-text { display: none; } }
+@media (max-width: 480px) { .app-header .brand-text { display: none; } }
 
 /* ───────────── Revisão ───────────── */
 .review-top { display: flex; flex-direction: column; gap: 12px; }

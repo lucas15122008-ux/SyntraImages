@@ -8,6 +8,7 @@ export const TYPE_LABELS: Record<PhotoType, string> = {
   white_on_box: 'Peça em cima da embalagem',
   use_hand: 'Mecânico segurando a peça',
   use_installed: 'Peça instalada no carro',
+  custom: 'Personalizada',
 };
 
 export const STORE_LABELS = ['Loja: apresentação', 'Loja: garantia e envio'] as const;

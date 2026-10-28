@@ -11,6 +11,8 @@ export type ReviewPhoto = {
   position: number;
   kind: 'cover' | 'generated' | 'fixed';
   type: PhotoType | null;
+  /** Nome da foto personalizada, quando houver. */
+  customLabel?: string | null;
   status: 'pending' | 'generating' | 'done' | 'failed';
   /** URL assinada da imagem atual (gerada ou fixa); muda a cada refresh da página. */
   url: string | null;
@@ -38,6 +40,7 @@ type Props = {
 export function labelOf(p: ReviewPhoto): string {
   if (p.kind === 'cover') return 'Capa';
   if (p.kind === 'fixed') return 'Loja';
+  if (p.type === 'custom' && p.customLabel) return p.customLabel;
   return p.type ? TYPE_LABELS[p.type] : 'Foto';
 }
 

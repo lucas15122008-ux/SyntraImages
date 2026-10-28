@@ -7,8 +7,18 @@ import { useMotionPresets } from '@/components/motion/presets';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { isAllowedImage, prepareImage, submitBudget } from '@/lib/kit/client-image';
 import { STORE_LABELS, TYPE_LABELS } from '@/lib/kit/labels';
-import { MAX_TOTAL, PHOTO_TYPES, defaultMiddleTypes, minTotal, planKit, validateConfig } from '@/lib/kit/plan';
-import type { KitConfig, PhotoType, Slot } from '@/lib/kit/types';
+import type { SavedCustomType } from '@/lib/kit/custom-types';
+import {
+  CUSTOM_LABEL_MAX,
+  CUSTOM_PROMPT_MAX,
+  MAX_TOTAL,
+  PHOTO_TYPES,
+  defaultMiddleTypes,
+  minTotal,
+  planKit,
+  validateConfig,
+} from '@/lib/kit/plan';
+import type { CustomPhoto, KitConfig, PhotoType, Slot } from '@/lib/kit/types';
 import { PhotoDrop } from './PhotoDrop';
 
 export type TemplateOption = { id: string; name: string; config: KitConfig };
@@ -21,6 +31,10 @@ type Props = {
   onCreate: (formData: FormData) => Promise<CreateResult>;
   onCreated: (kitId: string) => void;
   onSaveTemplate: (name: string, config: KitConfig) => Promise<string>;
+  /** Fotos personalizadas salvas pela equipe. */
+  savedCustom?: SavedCustomType[];
+  onSaveCustom?: (name: string, prompt: string) => Promise<SavedCustomType>;
+  onDeleteCustom?: (id: string) => Promise<void>;
 };
 
 type Errors = Partial<Record<'name' | 'photo' | 'model' | 'year' | 'reference' | 'template' | 'server' | 'total', string>>;
@@ -34,12 +48,13 @@ const TYPE_ICONS: Record<PhotoType, IconName> = {
   white_on_box: 'box',
   use_hand: 'hand',
   use_installed: 'car',
+  custom: 'pen',
 };
 
 function thumbOf(slot: Slot): { cls: string; icon: IconName } {
   if (slot.kind === 'cover') return { cls: 'cover', icon: 'sparkles' };
   if (slot.kind === 'fixed') return { cls: 'fixed', icon: 'store' };
-  return { cls: slot.type?.startsWith('use') ? 'use' : 'white', icon: slot.type ? TYPE_ICONS[slot.type] : 'image' };
+  return { cls: slot.type?.startsWith('use') || slot.type === 'custom' ? 'use' : 'white', icon: slot.type ? TYPE_ICONS[slot.type] : 'image' };
 }
 
 const FIELD_IDS: Record<string, string> = {
@@ -50,7 +65,18 @@ const FIELD_IDS: Record<string, string> = {
   reference: 'extra-photo',
 };
 
-export function BuildKit({ templates, storeReady, onCreate, onCreated, onSaveTemplate }: Props) {
+const EMPTY_CUSTOM: Array<CustomPhoto | null> = TYPE_POOL.map(() => null);
+
+export function BuildKit({
+  templates,
+  storeReady,
+  onCreate,
+  onCreated,
+  onSaveTemplate,
+  savedCustom = [],
+  onSaveCustom,
+  onDeleteCustom,
+}: Props) {
   const [productName, setProductName] = useState('');
   const [original, setOriginal] = useState<File | null>(null);
   const [extra, setExtra] = useState<File | null>(null);
@@ -60,23 +86,28 @@ export function BuildKit({ templates, storeReady, onCreate, onCreated, onSaveTem
   const [coverWithCar, setCoverWithCar] = useState(true);
   const [car, setCar] = useState({ model: '', year: '' });
   const [types, setTypes] = useState<PhotoType[]>(TYPE_POOL);
+  const [custom, setCustom] = useState<Array<CustomPhoto | null>>(EMPTY_CUSTOM);
+  const [saved, setSaved] = useState<SavedCustomType[]>(savedCustom);
+  const [customErrors, setCustomErrors] = useState<Record<number, string>>({});
+  const [attempted, setAttempted] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
   const { listItem, reduced } = useMotionPresets();
 
   const min = minTotal(includeStore);
-  const config: KitConfig = useMemo(
-    () => ({
+  const config: KitConfig = useMemo(() => {
+    const middle = types.slice(0, Math.max(0, total - 1 - (includeStore ? 2 : 0)));
+    return {
       total,
       coverWithCar,
       car: coverWithCar ? { model: car.model.trim(), year: car.year.trim() } : undefined,
       useExtraReference,
       includeStore,
-      types: types.slice(0, Math.max(0, total - 1 - (includeStore ? 2 : 0))),
-    }),
-    [total, coverWithCar, car, useExtraReference, includeStore, types],
-  );
+      types: middle,
+      ...(middle.includes('custom') ? { custom: middle.map((t, i) => (t === 'custom' ? (custom[i] ?? { label: '', prompt: '' }) : null)) } : {}),
+    };
+  }, [total, coverWithCar, car, useExtraReference, includeStore, types, custom]);
   const slots = useMemo(() => planKit(config), [config]);
   const fixed = slots.filter((s) => s.kind === 'fixed').length;
   const generated = slots.length - fixed;
@@ -95,6 +126,52 @@ export function BuildKit({ templates, storeReady, onCreate, onCreated, onSaveTem
     setUseExtraReference(t.config.useExtraReference);
     setIncludeStore(t.config.includeStore);
     setTypes(TYPE_POOL.map((fallback, i) => t.config.types[i] ?? fallback));
+    setCustom(TYPE_POOL.map((_, i) => t.config.custom?.[i] ?? null));
+  }
+
+  /** Valor do select de uma foto: o tipo pronto, a personalizada salva que bate com o texto, ou "custom". */
+  function selectValue(index: number, type: PhotoType): string {
+    if (type !== 'custom') return type;
+    const c = custom[index];
+    const match = c && saved.find((s) => s.name === c.label.trim() && s.prompt === c.prompt.trim());
+    return match ? `saved:${match.id}` : 'custom';
+  }
+
+  function pickType(index: number, value: string) {
+    const savedPick = value.startsWith('saved:') ? saved.find((s) => `saved:${s.id}` === value) : undefined;
+    const type: PhotoType = savedPick || value === 'custom' ? 'custom' : (value as PhotoType);
+    setTypes((prev) => prev.map((t, i) => (i === index ? type : t)));
+    if (savedPick) setCustom((prev) => prev.map((c, i) => (i === index ? { label: savedPick.name, prompt: savedPick.prompt } : c)));
+    else if (type === 'custom') setCustom((prev) => prev.map((c, i) => (i === index ? (c ?? { label: '', prompt: '' }) : c)));
+    setCustomErrors((e) => ({ ...e, [index]: '' }));
+  }
+
+  function editCustom(index: number, patch: Partial<CustomPhoto>) {
+    setCustom((prev) => prev.map((c, i) => (i === index ? { label: '', prompt: '', ...c, ...patch } : c)));
+  }
+
+  async function saveCustom(index: number) {
+    const c = custom[index];
+    if (!onSaveCustom || !c?.prompt.trim()) return;
+    const name = c.label.trim() || `Personalizada ${saved.length + 1}`;
+    try {
+      const row = await onSaveCustom(name, c.prompt);
+      setSaved((prev) => [...prev, row].sort((a, b) => a.name.localeCompare(b.name)));
+      setCustom((prev) => prev.map((x, i) => (i === index ? { label: row.name, prompt: row.prompt } : x)));
+      setCustomErrors((e) => ({ ...e, [index]: '' }));
+    } catch (e) {
+      setCustomErrors((x) => ({ ...x, [index]: e instanceof Error ? e.message : 'Não foi possível salvar a foto personalizada.' }));
+    }
+  }
+
+  async function deleteCustom(index: number, id: string) {
+    if (!onDeleteCustom) return;
+    try {
+      await onDeleteCustom(id);
+      setSaved((prev) => prev.filter((s) => s.id !== id));
+    } catch (e) {
+      setCustomErrors((x) => ({ ...x, [index]: e instanceof Error ? e.message : 'Não foi possível apagar a foto personalizada.' }));
+    }
   }
 
   function pickPhoto(file: File | undefined, which: 'photo' | 'reference') {
@@ -126,6 +203,7 @@ export function BuildKit({ templates, storeReady, onCreate, onCreated, onSaveTem
   async function submit() {
     const found = validate();
     setErrors(found);
+    setAttempted(true);
     const first = (['name', 'photo', 'model', 'year', 'reference'] as const).find((k) => found[k]);
     if (first) return void document.getElementById(FIELD_IDS[first])?.focus();
     if (Object.keys(found).length) return;
@@ -367,15 +445,39 @@ export function BuildKit({ templates, storeReady, onCreate, onCreated, onSaveTem
                       <>
                         <select
                           aria-label={`Tipo da foto ${slot.position}`}
-                          value={slot.type}
-                          onChange={(e) => setTypes((prev) => prev.map((t, i) => (i === slot.position - 2 ? (e.target.value as PhotoType) : t)))}
+                          value={selectValue(slot.position - 2, slot.type!)}
+                          onChange={(e) => pickType(slot.position - 2, e.target.value)}
                         >
                           {PHOTO_TYPES.map((t) => (
                             <option key={t} value={t}>
                               {TYPE_LABELS[t]}
                             </option>
                           ))}
+                          <option value="custom">Personalizada (escrever a cena)</option>
+                          {saved.length > 0 && (
+                            <optgroup label="Salvas pela equipe">
+                              {saved.map((s) => (
+                                <option key={s.id} value={`saved:${s.id}`}>
+                                  {s.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
                         </select>
+                        {slot.type === 'custom' && (
+                          <CustomEditor
+                            position={slot.position}
+                            value={custom[slot.position - 2]}
+                            invalid={attempted && !custom[slot.position - 2]?.prompt.trim()}
+                            error={customErrors[slot.position - 2]}
+                            savedId={selectValue(slot.position - 2, 'custom').replace(/^saved:|^custom$/g, '') || null}
+                            canSave={!!onSaveCustom}
+                            canDelete={!!onDeleteCustom}
+                            onChange={(patch) => editCustom(slot.position - 2, patch)}
+                            onSave={() => saveCustom(slot.position - 2)}
+                            onDelete={(id) => deleteCustom(slot.position - 2, id)}
+                          />
+                        )}
                         {slot.warnMissingAngle && (
                           <div className="meta">
                             <span className="pill warn">
@@ -422,6 +524,73 @@ export function BuildKit({ templates, storeReady, onCreate, onCreated, onSaveTem
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+type EditorProps = {
+  position: number;
+  value: CustomPhoto | null;
+  invalid: boolean;
+  error?: string;
+  /** Id da personalizada salva que bate com o texto; null se o texto é novo. */
+  savedId: string | null;
+  canSave: boolean;
+  canDelete: boolean;
+  onChange: (patch: Partial<CustomPhoto>) => void;
+  onSave: () => void;
+  onDelete: (id: string) => void;
+};
+
+function CustomEditor({ position, value, invalid, error, savedId, canSave, canDelete, onChange, onSave, onDelete }: EditorProps) {
+  const prompt = value?.prompt ?? '';
+  return (
+    <div className="custom-edit">
+      <input
+        type="text"
+        value={value?.label ?? ''}
+        maxLength={CUSTOM_LABEL_MAX}
+        placeholder="Nome curto (opcional), ex.: Peça na bancada"
+        aria-label={`Nome da foto ${position}`}
+        onChange={(e) => onChange({ label: e.target.value })}
+      />
+      <textarea
+        rows={3}
+        value={prompt}
+        maxLength={CUSTOM_PROMPT_MAX}
+        placeholder="Descreva a cena, ex.: a peça sobre uma bancada de madeira com ferramentas ao lado, luz quente de fim de tarde"
+        aria-label={`Descrição da foto ${position}`}
+        aria-invalid={invalid}
+        onChange={(e) => onChange({ prompt: e.target.value })}
+      />
+      <div className="custom-actions">
+        <span className="note num">
+          {prompt.length}/{CUSTOM_PROMPT_MAX}
+        </span>
+        {savedId ? (
+          <>
+            <span className="pill free">
+              <Icon name="bookmark" size={12} /> salva
+            </span>
+            {canDelete && (
+              <button type="button" className="btn ghost" onClick={() => onDelete(savedId)}>
+                Tirar das salvas
+              </button>
+            )}
+          </>
+        ) : (
+          canSave && (
+            <button type="button" className="btn ghost" disabled={!prompt.trim()} onClick={onSave}>
+              <Icon name="bookmark" size={14} /> Salvar para usar de novo
+            </button>
+          )
+        )}
+      </div>
+      {error && (
+        <p className="field-error" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

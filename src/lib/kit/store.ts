@@ -20,6 +20,9 @@ export type PhotoRow = {
   position: number;
   kind: 'cover' | 'generated' | 'fixed';
   type: PhotoType | null;
+  /** Só nas fotos `custom` (colunas da migração 0007). */
+  custom_label?: string | null;
+  custom_prompt?: string | null;
   status: 'pending' | 'generating' | 'done' | 'failed';
   /** Bucket `generated` para cover/generated; bucket `store` para fixed. */
   storage_path: string | null;

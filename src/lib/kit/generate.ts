@@ -80,6 +80,9 @@ export async function createKit(input: CreateKitInput, deps: { store?: KitStore 
           position: slot.position,
           kind: slot.kind,
           type: slot.type ?? null,
+          // Só manda as colunas novas quando há foto personalizada: kits comuns continuam
+          // funcionando mesmo antes de a migração 0007 rodar.
+          ...(slot.custom ? { custom_label: slot.custom.label, custom_prompt: slot.custom.prompt } : {}),
           status: asset ? ('done' as const) : ('pending' as const),
           storage_path: asset?.storage_path ?? null,
           warn_missing_angle: slot.warnMissingAngle,
@@ -142,7 +145,13 @@ export async function generatePhoto(
 
     const car = kit.config.coverWithCar && kit.car_model && kit.car_year ? { model: kit.car_model, year: kit.car_year } : undefined;
     const { text } = buildPrompt(
-      { position, kind: photo.kind, type: photo.type ?? undefined, warnMissingAngle: photo.warn_missing_angle },
+      {
+        position,
+        kind: photo.kind,
+        type: photo.type ?? undefined,
+        custom: photo.custom_prompt ? { label: photo.custom_label ?? '', prompt: photo.custom_prompt } : undefined,
+        warnMissingAngle: photo.warn_missing_angle,
+      },
       { productName: kit.product_name, car, hasExtraReference: useExtra },
     );
 

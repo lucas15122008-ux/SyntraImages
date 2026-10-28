@@ -33,3 +33,11 @@ describe('chaves da API', () => {
     await expect(authenticate(req({ authorization: `Bearer ${key}` }), { lookup: revoked, touch })).resolves.toBeNull();
   });
 });
+
+describe('chave no caminho do MCP', () => {
+  test('aceita /api/mcp/syn_... e ignora outros caminhos', () => {
+    expect(readApiKey(req({}, 'https://app.test/api/mcp/syn_abc-_1'))).toBe('syn_abc-_1');
+    expect(readApiKey(req({}, 'https://app.test/api/mcp/syn_abc/'))).toBe('syn_abc');
+    expect(readApiKey(req({}, 'https://app.test/api/v1/kits/syn_abc'))).toBeNull();
+  });
+});

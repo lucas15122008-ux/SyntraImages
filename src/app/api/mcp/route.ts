@@ -7,7 +7,8 @@ export const maxDuration = 300;
 
 /**
  * Servidor MCP (Streamable HTTP, sem sessão). No Claude: Configurações → Conectores →
- * Adicionar conector personalizado, com a URL `https://<app>/api/mcp?key=syn_...`.
+ * Adicionar conector personalizado, com a URL `https://<app>/api/mcp/syn_...`
+ * (também aceita `?key=syn_...` e o cabeçalho `Authorization: Bearer`).
  */
 export async function POST(req: Request) {
   return withApiKey(req, async ({ store, origin }) => {
@@ -21,9 +22,17 @@ export async function POST(req: Request) {
   });
 }
 
-/** Sem fluxo de eventos do servidor: tudo responde no próprio POST. */
-export async function GET() {
-  return apiError('Use POST: este servidor MCP não abre fluxo de eventos.', 405);
+/**
+ * Sem fluxo de eventos do servidor: o cliente MCP que pede um (Accept: text/event-stream)
+ * recebe 405, como manda o protocolo. Aberto no navegador, serve para conferir a chave.
+ */
+export async function GET(req: Request) {
+  if ((req.headers.get('accept') ?? '').includes('text/event-stream')) {
+    return apiError('Use POST: este servidor MCP não abre fluxo de eventos.', 405);
+  }
+  return withApiKey(req, async () =>
+    NextResponse.json({ ok: true, mensagem: 'Chave válida. Este endereço já pode ser usado como conector personalizado no Claude.' }),
+  );
 }
 
 export async function DELETE() {

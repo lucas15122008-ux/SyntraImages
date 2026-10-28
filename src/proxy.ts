@@ -4,10 +4,16 @@ import { createServerClient } from '@supabase/ssr';
 const PUBLIC_PATHS = ['/login', '/auth/confirm'];
 /** API de fotos e servidor MCP: entram com chave de acesso, não com a sessão do navegador. */
 const API_KEY_PATHS = ['/api/v1/', '/api/mcp'];
+const OAUTH_PATHS = ['/.well-known/oauth', '/.well-known/openid', '/register', '/authorize', '/token'];
 
 /** Renova a sessão e leva visitantes sem login para /login. */
 export async function proxy(request: NextRequest) {
   if (API_KEY_PATHS.some((p) => request.nextUrl.pathname.startsWith(p))) return NextResponse.next();
+  // O Syntra não tem login OAuth: quem procura (o conector do Claude, ao receber 401) precisa
+  // de um 404 claro, não do redirecionamento para a tela de login, que ele tenta usar e falha.
+  if (OAUTH_PATHS.some((p) => request.nextUrl.pathname.startsWith(p))) {
+    return NextResponse.json({ erro: 'Este servidor não usa OAuth: a chave vai no endereço do conector.' }, { status: 404 });
+  }
 
   let response = NextResponse.next({ request });
 

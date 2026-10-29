@@ -25,6 +25,30 @@ function niceMax(max: number): number {
 }
 
 /**
+ * Curva suave que passa por todos os pontos (cúbica monotônica, de Fritsch-Carlson):
+ * entre dois dias ela nunca sobe acima nem desce abaixo deles, então não inventa picos nem valores negativos.
+ */
+function smoothPath(pts: [number, number][]): string {
+  const n = pts.length;
+  if (n < 3) return pts.map(([px, py], i) => `${i === 0 ? 'M' : 'L'}${px},${py}`).join(' ');
+  const dx = pts.slice(1).map(([px], i) => px - pts[i][0]);
+  const slope = pts.slice(1).map(([, py], i) => (py - pts[i][1]) / dx[i]);
+  const t = pts.map((_, i) => {
+    if (i === 0) return slope[0];
+    if (i === n - 1) return slope[n - 2];
+    const a = slope[i - 1];
+    const b = slope[i];
+    return a * b <= 0 ? 0 : (3 * (dx[i - 1] + dx[i])) / ((2 * dx[i] + dx[i - 1]) / a + (dx[i] + 2 * dx[i - 1]) / b);
+  });
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += ` C${pts[i][0] + h},${pts[i][1] + h * t[i]} ${pts[i + 1][0] - h},${pts[i + 1][1] - h * t[i + 1]} ${pts[i + 1][0]},${pts[i + 1][1]}`;
+  }
+  return d;
+}
+
+/**
  * Gráfico de linha por dia, com área suave embaixo da primeira série.
  * Passar o mouse (ou tocar) num dia mostra a guia vertical, os pontos e o quadro com os valores.
  */
@@ -54,7 +78,7 @@ export function LineChart({
   const ticks = [0, top / 2, top];
   const labelEvery = Math.ceil(days.length / 8);
 
-  const line = (values: number[]) => values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(v)}`).join(' ');
+  const line = (values: number[]) => smoothPath(values.map((v, i) => [x(i), y(v)]));
   const area = (values: number[]) => `${line(values)} L${x(values.length - 1)},${base} L${x(0)},${base} Z`;
 
   return (

@@ -525,18 +525,30 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 .daily-chart { width: 100%; height: auto; display: block; }
 .daily-chart .grid { stroke: var(--line); stroke-width: 1; }
 .daily-chart .axis { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-.daily-chart .bar path { fill: var(--accent); transition: fill 0.15s; }
-.daily-chart .bar .hit { transition: fill 0.15s; }
-.daily-chart .bar .hit { fill: transparent; }
-.daily-chart .bar:hover .hit { fill: var(--accent-soft); opacity: 0.5; }
-.daily-chart .bar:hover path { fill: var(--accent-2); }
-.daily-chart .bar path.s1 { fill: var(--series-1); }
-.daily-chart .bar path.s2 { fill: var(--series-2); }
-.daily-chart .bar:hover path.s1, .daily-chart .bar:hover path.s2 { filter: brightness(1.12); }
-.stacked-chart { display: flex; flex-direction: column; gap: 10px; }
+.daily-chart .series { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.daily-chart .series.s1 { stroke: var(--series-1); }
+.daily-chart .series.s2 { stroke: var(--series-2); }
+.daily-chart .area-stop.s1 { stop-color: var(--series-1); }
+.daily-chart .area-stop.s2 { stop-color: var(--series-2); }
+.daily-chart .hit { fill: transparent; cursor: crosshair; }
+.daily-chart .guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.6; }
+.daily-chart .dot { stroke: var(--panel); stroke-width: 2; }
+.daily-chart .dot.s1 { fill: var(--series-1); }
+.daily-chart .dot.s2 { fill: var(--series-2); }
+.line-chart { display: flex; flex-direction: column; gap: 10px; }
+.line-chart-plot { position: relative; }
+.chart-tip {
+  position: absolute; pointer-events: none; z-index: 2; display: flex; flex-direction: column; gap: 2px; white-space: nowrap;
+  padding: 8px 10px; border-radius: 10px; font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--panel) 88%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow-lift);
+}
+.chart-tip strong { color: var(--ink); font-weight: 600; }
+.chart-tip span { display: inline-flex; align-items: center; gap: 6px; }
 .chart-legend { display: flex; gap: 16px; list-style: none; margin: 0; padding: 0; font-size: 12.5px; color: var(--muted); }
 .chart-legend li { display: inline-flex; align-items: center; gap: 6px; }
 .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.swatch.line { width: 14px; height: 3px; border-radius: 2px; }
 .swatch.s1 { background: var(--series-1); }
 .swatch.s2 { background: var(--series-2); }
 .revenue details summary { cursor: pointer; font-size: 13px; color: var(--muted); }

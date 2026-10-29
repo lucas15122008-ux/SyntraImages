@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { setPhotoWarning } from '@/lib/kit/actions';
+import { DeleteKitButton } from './DeleteKitButton';
 import { EditKitButton, type KitInfo } from './EditKitButton';
 import { RedoKitButton } from './RedoKitButton';
 import { ReviewKit, type ReviewPhoto } from './ReviewKit';
@@ -38,6 +39,7 @@ export function KitScreen({ kitId, title, info, originalUrl, photos }: Props) {
           <RedoKitButton positions={aiPositions} onConfirm={redo} working={working} />
         </>
       )}
+      footerActions={<DeleteKitButton kitId={kitId} name={info.productName} thumbUrl={photos.find((p) => p.kind === 'cover')?.url ?? originalUrl} />}
     />
   );
 }

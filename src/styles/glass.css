@@ -436,8 +436,10 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 .kit-delete:hover:not(:disabled) { color: var(--danger); }
 .kit-delete:disabled { cursor: wait; opacity: 0.6; }
 @media (hover: none) { .kit-delete { opacity: 1; } }
-.page-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
-.btn.ghost.danger { color: var(--danger); }
+/* "Excluir kit" ao lado de "Baixar kit": vidro neutro com texto vermelho; o vermelho cheio fica só no pop-up. */
+.cta-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.btn.kit-delete-btn { color: var(--danger); }
+.btn.kit-delete-btn:hover:not(:disabled) { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 30%, transparent); box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--danger) 45%, transparent); }
 .kit-new { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 260px; border-radius: 22px; border: 1.5px dashed color-mix(in srgb, var(--accent) 40%, var(--line)); color: var(--accent); text-decoration: none; font-weight: 600; background: color-mix(in srgb, var(--field) 60%, transparent); transition: background 0.25s, border-color 0.25s, transform 0.35s var(--ease); }
 .kit-new:hover { background: var(--field-hover); border-color: var(--accent); transform: translateY(-4px); }
 .kit-new .drop-icon { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--accent); color: #fff; box-shadow: 0 8px 20px var(--accent-glow); }

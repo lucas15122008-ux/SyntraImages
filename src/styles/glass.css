@@ -692,3 +692,15 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
   .confirm-panel[data-armed] .confirm-badge, .confirm-panel[data-busy] .confirm-badge, .btn.danger:hover:not(:disabled)::after { animation: none; }
   .confirm-panel[data-armed] .confirm-art, .confirm-panel[data-armed] .confirm-art img { transform: none; }
 }
+
+/* Resumo */
+.overview-block { display: flex; flex-direction: column; gap: 12px; }
+.overview-block > .head h2 { margin: 0; }
+.overview-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.overview-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.overview-list li:first-child { border-top: 0; }
+.overview-list a { color: var(--ink); text-decoration: none; min-width: 0; }
+.overview-list a:hover .title { color: var(--accent); }
+.overview-list .title { font-weight: 550; overflow-wrap: anywhere; }
+.overview-list .muted { color: var(--muted); font-size: 13px; }
+.overview-list .num { font-variant-numeric: tabular-nums; }

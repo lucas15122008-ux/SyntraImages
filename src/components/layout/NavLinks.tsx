@@ -17,6 +17,7 @@ function isActive(pathname: string, href: string) {
 /** Todas as entradas do menu, em grupos. Gestão só aparece para admin. */
 export function navGroups(isAdmin: boolean): Group[] {
   return [
+    { title: 'Início', items: [{ href: '/resumo', label: 'Resumo', icon: 'monitor' }] },
     {
       title: 'Fotos',
       items: [

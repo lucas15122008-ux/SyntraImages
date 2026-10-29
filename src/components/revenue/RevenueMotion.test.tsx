@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { DailyChart } from './DailyChart';
 import { CountUp } from './RevenueMotion';
@@ -32,7 +32,7 @@ describe('animações do faturamento', () => {
     expect(text(container.querySelector('[aria-hidden]'))).toBe('742');
   });
 
-  test('gráfico desenha uma barra por dia com venda e descreve cada dia', () => {
+  test('gráfico desenha uma linha e mostra o dia ao passar o mouse', () => {
     stubMatchMedia(true);
     render(
       <DailyChart
@@ -43,7 +43,8 @@ describe('animações do faturamento', () => {
       />,
     );
     const svg = screen.getByRole('img', { name: 'Faturamento por dia' });
-    expect(svg.querySelectorAll('.bar path')).toHaveLength(1);
-    expect(text(svg)).toContain('23/10: R$ 150,00 em 3 vendas');
+    expect(svg.querySelectorAll('path.series')).toHaveLength(1);
+    fireEvent.pointerEnter(svg.querySelectorAll('rect.hit')[1]);
+    expect(text(screen.getByRole('status'))).toBe('23/10R$ 150,00 em 3 vendas');
   });
 });

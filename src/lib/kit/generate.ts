@@ -15,7 +15,7 @@ export function startOfDayBR(now: Date): Date {
   return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate(), 3));
 }
 
-function dailyLimit(): number {
+export function dailyLimit(): number {
   const n = Number(process.env.DAILY_GENERATION_LIMIT);
   return Number.isInteger(n) && n > 0 ? n : DEFAULT_DAILY_LIMIT;
 }

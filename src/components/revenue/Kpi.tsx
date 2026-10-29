@@ -18,13 +18,13 @@ export function Kpi({ label, value, format, hero = false, children }: { label: s
   );
 }
 
-export function Delta({ now, before, invert = false }: { now: number; before: number; invert?: boolean }) {
+export function Delta({ now, before, invert = false, versus = 'vs. período anterior' }: { now: number; before: number; invert?: boolean; versus?: string }) {
   const c = change(now, before);
   if (c === null) return <span className="delta">sem base para comparar</span>;
   const good = invert ? c < 0 : c > 0;
   return (
     <span className={`delta ${c === 0 ? '' : good ? 'up' : 'down'}`}>
-      {percent(c)} <span className="muted">vs. período anterior</span>
+      {percent(c)} <span className="muted">{versus}</span>
     </span>
   );
 }

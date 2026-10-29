@@ -48,6 +48,7 @@ export interface KitStore {
   insertPhotos(rows: Array<Omit<PhotoRow, 'id'>>): Promise<void>;
   deleteKit(kitId: string): Promise<void>;
   getKit(kitId: string): Promise<KitRow | null>;
+  updateKit(kitId: string, patch: Partial<Pick<KitRow, 'product_name' | 'car_model' | 'car_year' | 'config'>>): Promise<void>;
   getPhoto(kitId: string, position: number): Promise<PhotoRow | null>;
   /** Fotos do kit em ordem de posição. */
   listPhotos(kitId: string): Promise<PhotoRow[]>;
@@ -158,6 +159,13 @@ function supabaseKitStore(opts: {
       const { data, error } = await q.maybeSingle();
       if (error) fail('Falha ao ler o kit', error);
       return (data as KitRow | null) ?? null;
+    },
+
+    async updateKit(kitId, patch) {
+      let q = sb.from('kits').update(patch).eq('id', kitId);
+      if (ownerScope) q = q.eq('owner', ownerScope);
+      const { error } = await q;
+      if (error) fail('Falha ao salvar o kit', error);
     },
 
     async getPhoto(kitId, position) {

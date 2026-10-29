@@ -3,9 +3,13 @@
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { setPhotoWarning } from '@/lib/kit/actions';
+import { EditKitButton, type KitInfo } from './EditKitButton';
+import { RedoKitButton } from './RedoKitButton';
 import { ReviewKit, type ReviewPhoto } from './ReviewKit';
 
-export function KitScreen({ kitId, title, originalUrl, photos }: { kitId: string; title: string; originalUrl: string; photos: ReviewPhoto[] }) {
+type Props = { kitId: string; title: string; info: KitInfo; originalUrl: string; photos: ReviewPhoto[] };
+
+export function KitScreen({ kitId, title, info, originalUrl, photos }: Props) {
   const router = useRouter();
   const generate = useCallback(
     async (position: number) => {
@@ -17,6 +21,8 @@ export function KitScreen({ kitId, title, originalUrl, photos }: { kitId: string
     [kitId],
   );
   const refresh = useCallback(() => router.refresh(), [router]);
+  const aiPositions = photos.filter((p) => p.kind !== 'fixed').map((p) => p.position);
+  const coverPosition = photos.find((p) => p.kind === 'cover')?.position;
   return (
     <ReviewKit
       title={title}
@@ -26,6 +32,12 @@ export function KitScreen({ kitId, title, originalUrl, photos }: { kitId: string
       setWarning={(position, on) => setPhotoWarning(kitId, position, on)}
       refresh={refresh}
       downloadHref={`/api/kits/${kitId}/download`}
+      actions={({ redo, working }) => (
+        <>
+          <EditKitButton kitId={kitId} info={info} onRedoCover={() => coverPosition !== undefined && redo([coverPosition])} />
+          <RedoKitButton positions={aiPositions} onConfirm={redo} working={working} />
+        </>
+      )}
     />
   );
 }

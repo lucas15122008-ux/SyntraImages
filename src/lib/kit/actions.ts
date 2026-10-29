@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSupabaseServer } from '@/lib/supabase/server';
+import { editKit, type EditKitInput } from './edit';
 import { createKit, deleteKitWithFiles } from './generate';
 import type { KitConfig } from './types';
 
@@ -44,5 +45,18 @@ export async function deleteKitAction(kitId: string): Promise<DeleteKitResult> {
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Não foi possível excluir o kit.' };
+  }
+}
+
+export type EditKitResult = { ok: true; coverChanged: boolean } | { ok: false; error: string };
+
+/** Salva nome do produto e carro da capa de um kit. */
+export async function editKitAction(kitId: string, input: EditKitInput): Promise<EditKitResult> {
+  try {
+    const { coverChanged } = await editKit(kitId, input);
+    revalidatePath('/');
+    return { ok: true, coverChanged };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Não foi possível salvar o kit.' };
   }
 }

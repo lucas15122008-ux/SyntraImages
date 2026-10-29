@@ -207,3 +207,41 @@ describe('ReviewKit', () => {
     expect(generate).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('ReviewKit: botões do título', () => {
+  test('redo gera de novo as posições pedidas, no máximo 3 ao mesmo tempo', async () => {
+    let running = 0;
+    let peak = 0;
+    const generate = vi.fn().mockImplementation(async () => {
+      running++;
+      peak = Math.max(peak, running);
+      await new Promise((r) => setTimeout(r, 5));
+      running--;
+      return { status: 'done', error: null };
+    });
+    setup([1, 2, 3, 4, 5].map((n) => photo(n)), {
+      generate,
+      actions: ({ redo }) => (
+        <button type="button" onClick={() => redo([1, 2, 3, 4, 5])}>
+          Refazer tudo
+        </button>
+      ),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Refazer tudo' }));
+    await waitFor(() => expect(generate).toHaveBeenCalledTimes(5));
+    expect(peak).toBeLessThanOrEqual(3);
+    expect(generate.mock.calls.map((c) => c[0]).sort()).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  test('avisa os botões quando ainda há foto gerando', () => {
+    const seen: boolean[] = [];
+    setup([photo(1, { status: 'generating', url: null }), photo(2)], {
+      autoStart: false,
+      actions: ({ working }) => {
+        seen.push(working);
+        return null;
+      },
+    });
+    expect(seen.at(-1)).toBe(true);
+  });
+});

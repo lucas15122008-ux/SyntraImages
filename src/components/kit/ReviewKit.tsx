@@ -30,9 +30,11 @@ type Props = {
    * na mesma fila de no máximo 3 por vez; `working` diz se ainda há foto gerando.
    */
   actions?: (ctx: ActionsCtx) => ReactNode;
+  /** Botões ao lado de "Baixar kit" (excluir). */
+  footerActions?: ReactNode;
 };
 
-export function ReviewKit({ title, originalUrl, photos, generate, setWarning, refresh, downloadHref, autoStart = true, actions }: Props) {
+export function ReviewKit({ title, originalUrl, photos, generate, setWarning, refresh, downloadHref, autoStart = true, actions, footerActions }: Props) {
   const inFlightRef = useRef(new Set<number>());
   const [inFlight, setInFlight] = useState<ReadonlySet<number>>(new Set());
   const [errors, setErrors] = useState<Record<number, string | null>>({});
@@ -148,17 +150,20 @@ export function ReviewKit({ title, originalUrl, photos, generate, setWarning, re
       </div>
       <div className="cta">
         <span className="note">Cada refação gera só aquela foto. Clique numa foto para comparar com a original.</span>
-        {allDone ? (
-          <a className="btn lg" href={downloadHref}>
-            <Icon name="download" />
-            Baixar kit
-          </a>
-        ) : (
-          <button type="button" className="btn lg" disabled>
-            <Icon name="download" />
-            Baixar kit
-          </button>
-        )}
+        <div className="cta-actions">
+          {footerActions}
+          {allDone ? (
+            <a className="btn lg" href={downloadHref}>
+              <Icon name="download" />
+              Baixar kit
+            </a>
+          ) : (
+            <button type="button" className="btn lg" disabled>
+              <Icon name="download" />
+              Baixar kit
+            </button>
+          )}
+        </div>
       </div>
       <CompareLightbox
         photo={opened}

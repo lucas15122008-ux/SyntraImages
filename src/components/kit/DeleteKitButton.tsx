@@ -45,7 +45,7 @@ export function DeleteKitButton({ kitId, name, thumbUrl = null, compact = false 
           <Icon name="trash" size={16} />
         </button>
       ) : (
-        <button type="button" className="btn ghost danger" onClick={() => setOpen(true)}>
+        <button type="button" className="btn lg soft kit-delete-btn" onClick={() => setOpen(true)}>
           <Icon name="trash" size={16} />
           Excluir kit
         </button>

@@ -623,7 +623,7 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
   background: radial-gradient(60% 100% at 50% 0%, var(--danger-soft), transparent 70%);
   opacity: 0.55; transition: opacity 0.35s var(--ease);
 }
-.confirm-panel[data-armed]::before { opacity: 1; }
+.confirm-panel:is([data-busy], :has(.btn.danger:is(:hover, :focus-visible)))::before { opacity: 1; }
 .confirm-panel > * { position: relative; }
 
 .confirm-visual { width: 132px; margin: 0 auto; position: relative; }
@@ -633,8 +633,8 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
   transition: transform 0.45s var(--ease), box-shadow 0.45s var(--ease);
 }
 .confirm-art img { width: 100%; height: 100%; object-fit: cover; transition: filter 0.45s var(--ease), transform 0.6s var(--ease); }
-.confirm-panel[data-armed] .confirm-art { transform: rotate(-3deg) scale(0.95); box-shadow: 0 14px 30px -14px color-mix(in srgb, var(--danger) 55%, transparent); }
-.confirm-panel[data-armed] .confirm-art img { filter: grayscale(0.85) blur(0.6px); transform: scale(1.06); }
+.confirm-panel:is([data-busy], :has(.btn.danger:is(:hover, :focus-visible))) .confirm-art { transform: rotate(-3deg) scale(0.95); box-shadow: 0 14px 30px -14px color-mix(in srgb, var(--danger) 55%, transparent); }
+.confirm-panel:is([data-busy], :has(.btn.danger:is(:hover, :focus-visible))) .confirm-art img { filter: grayscale(0.85) blur(0.6px); transform: scale(1.06); }
 
 .confirm-badge {
   position: absolute; right: -14px; bottom: -14px; width: 50px; height: 50px; border-radius: 50%;
@@ -643,8 +643,8 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
   transition: transform 0.35s var(--ease), background 0.25s, color 0.25s;
 }
 .confirm-badge .lid { transform-box: view-box; transform-origin: 4px 7px; transition: transform 0.4s var(--ease); }
-.confirm-panel[data-armed] .confirm-badge { background: var(--danger); color: var(--bg); transform: scale(1.08); animation: trash-wiggle 0.5s var(--ease); }
-.confirm-panel[data-armed] .confirm-badge .lid { transform: translateY(-1.5px) rotate(-28deg); }
+.confirm-panel:is([data-busy], :has(.btn.danger:is(:hover, :focus-visible))) .confirm-badge { background: var(--danger); color: var(--bg); transform: scale(1.08); animation: trash-wiggle 0.5s var(--ease); }
+.confirm-panel:is([data-busy], :has(.btn.danger:is(:hover, :focus-visible))) .confirm-badge .lid { transform: translateY(-1.5px) rotate(-28deg); }
 .confirm-panel[data-busy] .confirm-badge { animation: trash-pulse 1s var(--ease) infinite; }
 
 .confirm-text { display: flex; flex-direction: column; gap: 4px; }
@@ -677,6 +677,53 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 @media (max-width: 420px) { .confirm-actions { grid-template-columns: 1fr; } .confirm-actions .btn.danger { order: -1; } }
 @media (prefers-reduced-motion: reduce) {
   .confirm-art, .confirm-art img, .confirm-badge, .confirm-badge .lid, .confirm-panel::before { transition: none; }
-  .confirm-panel[data-armed] .confirm-badge, .confirm-panel[data-busy] .confirm-badge, .btn.danger:hover:not(:disabled)::after { animation: none; }
-  .confirm-panel[data-armed] .confirm-art, .confirm-panel[data-armed] .confirm-art img { transform: none; }
+  .confirm-panel:is([data-busy], :has(.btn.danger:is(:hover, :focus-visible))) .confirm-badge, .confirm-panel[data-busy] .confirm-badge, .btn.danger:hover:not(:disabled)::after { animation: none; }
+  .confirm-panel:is([data-busy], :has(.btn.danger:is(:hover, :focus-visible))) .confirm-art, .confirm-panel:is([data-busy], :has(.btn.danger:is(:hover, :focus-visible))) .confirm-art img { transform: none; }
+}
+
+/* ───────────── Editar e refazer o kit ───────────── */
+.review-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.review-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.confirm-panel.wide { width: min(480px, 100%); text-align: left; }
+/* Pop-ups que não apagam nada brilham na cor do app, não em vermelho. */
+.confirm-panel.wide::before, .confirm-panel:has(.redo-go)::before { background: radial-gradient(60% 100% at 50% 0%, var(--accent-soft), transparent 70%); }
+.confirm-panel.wide:focus-within::before { opacity: 1; }
+
+.edit-form { display: flex; flex-direction: column; gap: 16px; }
+.edit-head { align-items: center; text-align: center; }
+.edit-icon { width: 52px; height: 52px; margin: 0 auto 8px; border-radius: 16px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow); }
+/* A caneta "escreve" enquanto a pessoa digita. */
+.confirm-panel:has(input:focus) .edit-icon svg { animation: pen-write 1.3s var(--ease) infinite; }
+.edit-redo { padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); border: 1px solid var(--glass-edge); }
+
+.redo-visual { position: relative; height: 112px; display: grid; place-items: center; }
+.redo-tile {
+  --off: calc(var(--i) - var(--c));
+  position: absolute; width: 62px; height: 62px; border-radius: 14px; display: grid; place-items: center;
+  font: 600 13px var(--mono); color: var(--muted); background: var(--field); border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow);
+  transform: translateX(calc(var(--off) * 44px)) rotate(calc(var(--off) * 5deg));
+  transition: transform 0.55s var(--ease), color 0.3s;
+}
+.redo-badge {
+  position: absolute; z-index: 2; bottom: -12px; left: calc(50% - 23px); width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); border: 4px solid var(--panel-strong); box-shadow: var(--glass-shadow);
+  transition: transform 0.7s var(--ease);
+}
+/* Ao apontar o botão, as fotos se abrem em leque e a seta dá uma volta. */
+.confirm-panel:has(.redo-go:is(:hover, :focus-visible)) .redo-tile { color: var(--accent); transform: translateX(calc(var(--off) * 56px)) translateY(-8px) rotate(calc(var(--off) * -7deg)); }
+.confirm-panel:has(.redo-go:is(:hover, :focus-visible)) .redo-badge { transform: rotate(360deg) scale(1.08); }
+.confirm-facts li.warn, .confirm-facts li.warn svg { color: var(--warn); font-weight: 600; }
+.btn.redo-go::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; translate: -110% 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
+}
+.btn.redo-go:hover::after { animation: sweep 0.8s var(--ease); }
+
+@keyframes pen-write { 0%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: 2px -1px; rotate: -7deg; } 50% { translate: -1px 1px; rotate: 4deg; } 75% { translate: 1px 0; rotate: -3deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .redo-tile, .redo-badge { transition: none; }
+  .confirm-panel:has(input:focus) .edit-icon svg, .btn.redo-go:hover::after { animation: none; }
+  .confirm-panel:has(.redo-go:is(:hover, :focus-visible)) .redo-badge { transform: none; }
 }

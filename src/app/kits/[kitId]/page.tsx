@@ -7,6 +7,7 @@ import { KitSteps } from '@/components/layout/KitSteps';
 import type { ReviewPhoto } from '@/components/kit/PhotoCard';
 import { isReadyForDownload } from '@/lib/kit/download';
 import { isStaleGeneration } from '@/lib/kit/limits';
+import type { KitConfig } from '@/lib/kit/types';
 import { switchesForKit } from '@/lib/ml/photo-switches';
 import { brtDay } from '@/lib/ml/revenue';
 import { getSupabaseServer, requireUser } from '@/lib/supabase/server';
@@ -22,7 +23,7 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
   await requireUser();
   const sb = await getSupabaseServer();
 
-  const { data: kit } = await sb.from('kits').select('id, product_name, car_model, car_year, original_path').eq('id', kitId).maybeSingle();
+  const { data: kit } = await sb.from('kits').select('id, product_name, car_model, car_year, original_path, config').eq('id', kitId).maybeSingle();
   if (!kit) notFound();
   const { data: rows } = await sb.from('kit_photos').select('*').eq('kit_id', kitId).order('position');
 
@@ -62,7 +63,18 @@ export default async function KitPage({ params }: { params: Promise<{ kitId: str
           <DeleteKitButton kitId={kitId} name={kit.product_name} thumbUrl={photos.find((p) => p.kind === 'cover')?.url ?? originalUrl} />
         </div>
       </div>
-      <KitScreen kitId={kitId} title={car ? `${kit.product_name} · ${car}` : kit.product_name} originalUrl={originalUrl} photos={photos} />
+      <KitScreen
+        kitId={kitId}
+        title={car ? `${kit.product_name} · ${car}` : kit.product_name}
+        info={{
+          productName: kit.product_name,
+          coverWithCar: !!(kit.config as KitConfig | null)?.coverWithCar,
+          carModel: kit.car_model ?? '',
+          carYear: kit.car_year ?? '',
+        }}
+        originalUrl={originalUrl}
+        photos={photos}
+      />
       {allReady && (
         <section className="panel kit-published">
           <div className="head">

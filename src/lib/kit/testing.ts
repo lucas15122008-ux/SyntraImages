@@ -44,6 +44,11 @@ export function fakeStore(over: { assets?: [StoreAsset | null, StoreAsset | null
       photos = photos.filter((p) => p.kit_id !== id);
     },
     getKit: async (id) => kits.get(id) ?? null,
+    updateKit: async (id, patch) => {
+      writes.push('updateKit');
+      const kit = kits.get(id);
+      if (kit) kits.set(id, { ...kit, ...patch });
+    },
     getPhoto: async (kitId, position) => {
       const p = photos.find((x) => x.kit_id === kitId && x.position === position);
       return p ? { ...p } : null; // cópia, como o banco real

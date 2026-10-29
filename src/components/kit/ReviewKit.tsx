@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePrefersReducedMotion } from '@/components/motion/presets';
 import { Icon } from '@/components/ui/Icon';
 import { isReadyForDownload } from '@/lib/kit/download';
@@ -25,9 +25,14 @@ type Props = {
   downloadHref: string;
   /** Começa sozinho a gerar as fotos pendentes (padrão: sim). */
   autoStart?: boolean;
+  /**
+   * Botões ao lado do título (editar, refazer tudo). `redo` gera de novo as posições pedidas,
+   * na mesma fila de no máximo 3 por vez; `working` diz se ainda há foto gerando.
+   */
+  actions?: (ctx: ActionsCtx) => ReactNode;
 };
 
-export function ReviewKit({ title, originalUrl, photos, generate, setWarning, refresh, downloadHref, autoStart = true }: Props) {
+export function ReviewKit({ title, originalUrl, photos, generate, setWarning, refresh, downloadHref, autoStart = true, actions }: Props) {
   const inFlightRef = useRef(new Set<number>());
   const [inFlight, setInFlight] = useState<ReadonlySet<number>>(new Set());
   const [errors, setErrors] = useState<Record<number, string | null>>({});
@@ -55,19 +60,23 @@ export function ReviewKit({ title, originalUrl, photos, generate, setWarning, re
     [generate, refresh],
   );
 
-  // Gera sozinho as fotos pendentes, no máximo 3 por vez.
-  const runRef = useRef(run);
-  useEffect(() => {
-    runRef.current = run;
-  }, [run]);
+  /** Gera as posições em fila, no máximo 3 por vez. */
+  const runQueue = useCallback(
+    (positions: number[]) => {
+      const queue = [...positions];
+      const worker = async () => {
+        for (let next = queue.shift(); next !== undefined; next = queue.shift()) await run(next);
+      };
+      void Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker));
+    },
+    [run],
+  );
+
+  // Gera sozinho as fotos pendentes.
   useEffect(() => {
     if (!autoStart || started.current) return;
     started.current = true;
-    const queue = photos.filter((p) => p.kind !== 'fixed' && p.status === 'pending').map((p) => p.position);
-    const worker = async () => {
-      for (let next = queue.shift(); next !== undefined; next = queue.shift()) await runRef.current(next);
-    };
-    void Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker));
+    runQueue(photos.filter((p) => p.kind !== 'fixed' && p.status === 'pending').map((p) => p.position));
     // Só na primeira montagem: as fotos seguintes entram pelo botão Refazer.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -94,9 +103,12 @@ export function ReviewKit({ title, originalUrl, photos, generate, setWarning, re
   return (
     <div className="panel">
       <div className="review-top">
-        <div className="head">
-          <h2>{title}</h2>
-          <span className="note">{photos.length} fotos. Refaça só as que não servem.</span>
+        <div className="review-title-row">
+          <div className="head">
+            <h2>{title}</h2>
+            <span className="note">{photos.length} fotos. Refaça só as que não servem.</span>
+          </div>
+          {actions && <div className="review-actions"><TitleActions render={actions} redo={runQueue} working={working} /></div>}
         </div>
         <div className="progress-row">
           <span>
@@ -163,4 +175,11 @@ export function ReviewKit({ title, originalUrl, photos, generate, setWarning, re
       />
     </div>
   );
+}
+
+type ActionsCtx = { redo: (positions: number[]) => void; working: boolean };
+
+/** Desenha os botões do título; como componente, a fila de geração entra só como prop de evento. */
+function TitleActions({ render, ...ctx }: ActionsCtx & { render: (ctx: ActionsCtx) => ReactNode }) {
+  return render(ctx);
 }

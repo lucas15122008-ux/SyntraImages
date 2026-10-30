@@ -14,7 +14,7 @@ export type MlOrder = {
   pack_id: number | null;
   /** Envio do pedido; pedidos do mesmo carrinho dividem um envio. */
   shipping?: { id: number | null } | null;
-  order_items: { item: { id: string; title: string }; quantity: number; unit_price: number; sale_fee: number | null }[];
+  order_items: { item: { id: string; title: string; seller_sku?: string | null; seller_custom_field?: string | null }; quantity: number; unit_price: number; sale_fee: number | null }[];
 };
 
 export type Period = 1 | 7 | 30 | 90;

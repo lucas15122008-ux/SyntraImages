@@ -10,6 +10,8 @@ const cents = (n: number) => Math.round(n * 100) / 100;
 export type ProductSales = {
   itemId: string;
   title: string;
+  /** SKU do vendedor no anúncio; null quando não tem. */
+  sku: string | null;
   /** Receita das vendas não canceladas (preço × unidades). */
   revenue: number;
   units: number;
@@ -31,8 +33,9 @@ export function salesByProduct(orders: MlOrder[]): Map<string, ProductSales> {
     const seen = new Set<string>();
     for (const line of o.order_items) {
       const id = line.item.id;
-      const cur = out.get(id) ?? { itemId: id, title: line.item.title, revenue: 0, units: 0, orders: 0, shipments: 0, fees: 0, cancelled: 0 };
+      const cur = out.get(id) ?? { itemId: id, title: line.item.title, sku: null, revenue: 0, units: 0, orders: 0, shipments: 0, fees: 0, cancelled: 0 };
       out.set(id, cur);
+      cur.sku ??= line.item.seller_sku?.trim() || line.item.seller_custom_field?.trim() || null;
       if (o.status === 'cancelled') {
         if (!seen.has(id)) cur.cancelled++;
         seen.add(id);

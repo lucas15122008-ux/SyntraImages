@@ -17,6 +17,7 @@ const text = () => (document.body.textContent ?? '').replace(/\u00a0/g, ' ');
 
 const row = (o: Partial<ProductRow> & { itemId: string }): ProductRow => ({
   title: 'Retentor',
+  sku: null,
   revenue: 300,
   units: 3,
   orders: 3,
@@ -37,7 +38,7 @@ describe('tabela de produtos', () => {
     render(
       <ProductsTable
         costsEnabled
-        rows={[row({ itemId: 'MLB1', title: 'Sensor ABS' }), row({ itemId: 'MLB2', title: 'Bomba d’água', cost: null, health: null })]}
+        rows={[row({ itemId: 'MLB1', title: 'Sensor ABS', sku: '50965' }), row({ itemId: 'MLB2', title: 'Bomba d’água', cost: null, health: null })]}
       />,
     );
     // 300 − 36 − 30 − 120 = 114
@@ -46,11 +47,12 @@ describe('tabela de produtos', () => {
     expect(text()).toContain('informe o custo');
     expect(text()).toContain('77 · média');
     expect(text()).toContain('não encontrado');
+    expect(text()).toContain('SKU 50965 · MLB1');
   });
 
   test('busca filtra por título e o custo digitado recalcula o lucro', () => {
     render(<ProductsTable costsEnabled rows={[row({ itemId: 'MLB1', title: 'Sensor ABS', cost: null }), row({ itemId: 'MLB2', title: 'Bomba' })]} />);
-    fireEvent.change(screen.getByPlaceholderText('Título ou MLB'), { target: { value: 'sensor' } });
+    fireEvent.change(screen.getByPlaceholderText('Título, SKU ou MLB'), { target: { value: 'sensor' } });
     expect(screen.queryByText('Bomba')).toBeNull();
     fireEvent.change(screen.getByLabelText('Custo por unidade de Sensor ABS'), { target: { value: '50' } });
     // 300 − 36 − 30 − 150 = 84

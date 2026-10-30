@@ -20,7 +20,17 @@ describe('vendas por produto', () => {
       order({ id: 3, status: 'cancelled' }),
       order({ id: 4, status: 'payment_required' }),
     ]);
-    expect(m.get('MLB1')).toEqual({ itemId: 'MLB1', title: 'Retentor', revenue: 280, units: 3, orders: 2, shipments: 2, fees: 32, cancelled: 1 });
+    expect(m.get('MLB1')).toEqual({ itemId: 'MLB1', title: 'Retentor', sku: null, revenue: 280, units: 3, orders: 2, shipments: 2, fees: 32, cancelled: 1 });
+  });
+
+  test('SKU vem do seller_sku, ou do seller_custom_field quando falta', () => {
+    const line = (item: MlOrder['order_items'][0]['item']) => [{ item, quantity: 1, unit_price: 10, sale_fee: 1 }];
+    const m = salesByProduct([
+      order({ id: 1, order_items: line({ id: 'MLB1', title: 'A', seller_sku: '25395' }) }),
+      order({ id: 2, order_items: line({ id: 'MLB2', title: 'B', seller_sku: null, seller_custom_field: ' 777 ' }) }),
+    ]);
+    expect(m.get('MLB1')?.sku).toBe('25395');
+    expect(m.get('MLB2')?.sku).toBe('777');
   });
 
   test('pedidos do mesmo carrinho contam um envio só', () => {

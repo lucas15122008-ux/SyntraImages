@@ -132,7 +132,7 @@ export function ProductsTable({ rows, costsEnabled }: { rows: ProductRow[]; cost
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = q ? rows.filter((r) => r.title.toLowerCase().includes(q) || r.itemId.toLowerCase().includes(q)) : rows;
+    const filtered = q ? rows.filter((r) => r.title.toLowerCase().includes(q) || r.itemId.toLowerCase().includes(q) || !!r.sku?.toLowerCase().includes(q)) : rows;
     const profit = (r: ProductRow) => calcs.get(r.itemId)?.profit ?? -Infinity;
     const margin = (r: ProductRow) => calcs.get(r.itemId)?.margin ?? Infinity;
     const health = (r: ProductRow) => r.health?.score ?? 101;
@@ -173,7 +173,7 @@ export function ProductsTable({ rows, costsEnabled }: { rows: ProductRow[]; cost
           <span className="label">Buscar produto</span>
           <span className="input-icon">
             <Icon name="zoom" size={16} />
-            <input type="search" placeholder="Título ou MLB" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input type="search" placeholder="Título, SKU ou MLB" value={query} onChange={(e) => setQuery(e.target.value)} />
           </span>
         </label>
         <label className="field">
@@ -226,7 +226,10 @@ export function ProductsTable({ rows, costsEnabled }: { rows: ProductRow[]; cost
                           <a className="title" href={r.permalink ?? `https://produto.mercadolivre.com.br/${r.itemId.replace('MLB', 'MLB-')}`} target="_blank" rel="noreferrer">
                             {r.title}
                           </a>
-                          <span className="muted">{r.itemId}</span>
+                          <span className="muted">
+                            {r.sku ? `SKU ${r.sku} · ` : ''}
+                            {r.itemId}
+                          </span>
                         </div>
                       </div>
                     </td>

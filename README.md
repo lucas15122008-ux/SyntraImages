@@ -82,7 +82,7 @@ No computador, em `.env.local`; na hospedagem (por exemplo Vercel, em **Settings
 | `ML_CLIENT_ID` / `ML_CLIENT_SECRET` | App ID e Secret Key do app criado no DevCenter do Mercado Livre. **Só no servidor.** |
 | `ML_TOKEN_KEY` | Chave que criptografa os tokens do ML no banco (mínimo 32 caracteres). Gere com `openssl rand -base64 48`. Se trocar, é preciso reconectar a conta. |
 | `ML_REDIRECT_URI` | Opcional. A URL de retorno cadastrada no app; se vazia, usa `<domínio>/api/ml/callback`. |
-| `DAILY_GENERATION_LIMIT` | Teto de fotos geradas por dia, somando a equipe toda (dia de Brasília). Padrão 200 (cerca de US$ 2). |
+| `DAILY_GENERATION_LIMIT` | Teto de fotos geradas por dia, somando a equipe toda (dia de Brasília). Padrão 350 (cerca de US$ 3,50). |
 
 O arquivo `.env.local` não vai para o git. Se uma chave vazar, gere outra no painel do serviço.
 

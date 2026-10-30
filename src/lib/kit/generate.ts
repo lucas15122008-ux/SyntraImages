@@ -7,7 +7,7 @@ import { planKit, validateConfig } from './plan';
 import { getKitStore, type KitStore } from './store';
 import type { KitConfig } from './types';
 
-const DEFAULT_DAILY_LIMIT = 200;
+const DEFAULT_DAILY_LIMIT = 350;
 
 /** Meia-noite de Brasília (UTC-3, sem horário de verão) do dia de `now`, como instante UTC. */
 export function startOfDayBR(now: Date): Date {

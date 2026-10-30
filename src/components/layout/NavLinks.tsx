@@ -17,7 +17,7 @@ function isActive(pathname: string, href: string) {
 /** Todas as entradas do menu, em grupos. Gestão só aparece para admin. */
 export function navGroups(isAdmin: boolean): Group[] {
   return [
-    { title: 'Início', items: [{ href: '/resumo', label: 'Resumo', icon: 'monitor' }] },
+    { title: 'Início', items: [{ href: '/resumo', label: 'Resumo', icon: 'dashboard' }] },
     {
       title: 'Fotos',
       items: [
@@ -34,7 +34,7 @@ export function navGroups(isAdmin: boolean): Group[] {
             items: [
               { href: '/faturamento', label: 'Faturamento', icon: 'chart' },
               { href: '/promocoes', label: 'Promoções', icon: 'tag' },
-              { href: '/foto-x-venda', label: 'Foto x venda', icon: 'sparkles' },
+              { href: '/foto-x-venda', label: 'Foto x venda', icon: 'image' },
               { href: '/concorrentes', label: 'Concorrentes', icon: 'flag' },
               { href: '/configuracoes/equipe', label: 'Equipe', icon: 'users' },
               { href: '/configuracoes/api', label: 'API e MCP', icon: 'lock' },
@@ -45,7 +45,7 @@ export function navGroups(isAdmin: boolean): Group[] {
   ];
 }
 
-/** Navegação principal do menu lateral: a pílula de destaque desliza até a página atual. */
+/** Navegação principal do menu lateral: o fundo de destaque desliza até a página atual. */
 export function NavLinks({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => void }) {
   const pathname = usePathname() ?? '/';
   const reduced = usePrefersReducedMotion();
@@ -69,7 +69,7 @@ export function NavLinks({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate
                   <motion.span
                     layoutId="nav-pill"
                     className="nav-pill"
-                    transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+                    transition={reduced ? { duration: 0 } : { duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                   />
                 )}
                 <Icon name={item.icon} size={18} />

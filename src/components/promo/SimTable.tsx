@@ -1,42 +1,17 @@
 'use client';
 
-import { useMemo, useState, useSyncExternalStore, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { count, money, share } from '@/components/revenue/format';
 import { quoteShipping, saveItemCost } from '@/lib/ml/costs';
+import { useTax } from './tax';
 import { parseMoney, projection, saleFee, unitProfit, verdict, type SimRow, type Verdict } from '@/lib/ml/simulate';
 
 export type SimRowView = SimRow & { cost: number | null; kind: string };
 
 const DAY_MS = 86_400_000;
-const TAX_KEY = 'syntra.sim.tax';
 
 const toText = (n: number | null) => (n === null ? '' : n.toFixed(2).replace('.', ','));
 const keyOf = (r: SimRowView) => `${r.item.id}|${r.offer.promotionId}`;
-
-// Imposto lembrado neste navegador; sem armazenamento, vale só nesta visita.
-const taxListeners = new Set<() => void>();
-let taxMemory: string | null = null;
-function readTax(): string {
-  if (taxMemory !== null) return taxMemory;
-  try {
-    return localStorage.getItem(TAX_KEY) ?? '0';
-  } catch {
-    return '0';
-  }
-}
-function writeTax(v: string) {
-  taxMemory = v;
-  try {
-    localStorage.setItem(TAX_KEY, v);
-  } catch {
-    // Sem armazenamento: fica na memória.
-  }
-  taxListeners.forEach((l) => l());
-}
-const subscribeTax = (l: () => void) => {
-  taxListeners.add(l);
-  return () => taxListeners.delete(l);
-};
 
 /** Dias que faltam para a campanha acabar; 30 quando não tem data. */
 function daysLeft(finish: string | null, now: number): number {
@@ -214,7 +189,7 @@ function Row({
 }
 
 export function SimTable({ rows, costsEnabled }: { rows: SimRowView[]; costsEnabled: boolean }) {
-  const taxText = useSyncExternalStore(subscribeTax, readTax, () => '0');
+  const [taxText, writeTax] = useTax();
   const [liftText, setLiftText] = useState('30');
   const [now] = useState(() => Date.now());
   const [inputs, setInputs] = useState<Record<string, Input>>(() =>

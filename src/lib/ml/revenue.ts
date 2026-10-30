@@ -12,6 +12,8 @@ export type MlOrder = {
   date_created: string;
   total_amount: number;
   pack_id: number | null;
+  /** Envio do pedido; pedidos do mesmo carrinho dividem um envio. */
+  shipping?: { id: number | null } | null;
   order_items: { item: { id: string; title: string }; quantity: number; unit_price: number; sale_fee: number | null }[];
 };
 

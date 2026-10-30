@@ -33,6 +33,7 @@ export function navGroups(isAdmin: boolean): Group[] {
             title: 'Gestão',
             items: [
               { href: '/faturamento', label: 'Faturamento', icon: 'chart' },
+              { href: '/produtos', label: 'Produtos', icon: 'box' },
               { href: '/promocoes', label: 'Promoções', icon: 'tag' },
               { href: '/foto-x-venda', label: 'Foto x venda', icon: 'image' },
               { href: '/concorrentes', label: 'Concorrentes', icon: 'flag' },

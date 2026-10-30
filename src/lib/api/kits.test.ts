@@ -88,7 +88,7 @@ describe('criar, gerar e acompanhar pela API', () => {
   test('quando o teto diário estoura, as que faltam viram falha com o motivo', async () => {
     const f = fakeStore();
     const { kitId, positions } = await createKitFromRequest({ produto: 'Bomba', foto_base64: b64, total: 6 }, { store: f.store });
-    f.setLogToday(200);
+    f.setLogToday(350);
     await generatePositions(f.store, kitId, positions, { generate: vi.fn(), concurrency: 2 });
     const view = await kitView(f.store, f.kits.get(kitId)!, 'https://app.test');
     expect(view.status).toBe('com_falhas');

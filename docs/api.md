@@ -1,6 +1,6 @@
 # API de fotos e conector MCP
 
-Só a parte de fotos do Syntra: criar um kit a partir de uma foto da peça, acompanhar a geração, ver e refazer fotos. Os kits criados pela API aparecem em **Meus kits** de quem criou a chave, para revisar e baixar o zip no app, e contam no mesmo limite diário de gerações da equipe (`DAILY_GENERATION_LIMIT`, padrão 200).
+Só a parte de fotos do Syntra: criar um kit a partir de uma foto da peça, acompanhar a geração, ver e refazer fotos. Os kits criados pela API aparecem em **Meus kits** de quem criou a chave, para revisar e baixar o zip no app, e contam no mesmo limite diário de gerações da equipe (`DAILY_GENERATION_LIMIT`, padrão 350).
 
 ## Chave de acesso
 

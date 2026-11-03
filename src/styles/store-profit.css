@@ -1,0 +1,36 @@
+/* Lucro da Loja (/lucro). */
+.store-profit-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.store-profit .tax-field { width: 180px; }
+.profit-table td, .profit-table th { padding-top: 12px; padding-bottom: 12px; }
+.profit-table td:first-child { white-space: normal; }
+.profit-table .muted-col { color: var(--muted); }
+.profit-table tr.total td { font-weight: 650; }
+.profit-table tr.total td.muted-col { font-weight: 500; }
+.profit-table .down { color: var(--danger); }
+.profit-table tbody tr:last-child td { border-bottom: 0; }
+.store-profit-foot { font-size: 12.5px; }
+
+.fixed-list { list-style: none; margin: 0; padding: 0; }
+.fixed-cost { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 170px auto; gap: 18px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; font-variant-numeric: tabular-nums; }
+.fixed-cost .block { display: block; }
+.fixed-cost.ended .fixed-name, .fixed-cost.ended .fixed-monthly { color: var(--muted); }
+.fixed-since, .fixed-period { font-size: 13.5px; text-align: right; }
+.fixed-monthly { text-align: right; white-space: nowrap; }
+.fixed-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.fixed-actions .btn { padding: 4px 10px; font-size: 12.5px; }
+.btn.ghost.fixed-del { color: var(--danger); }
+
+.fixed-form { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(120px, 1fr) minmax(140px, 1fr) auto; gap: 16px; align-items: end; padding-top: 6px; }
+.fixed-form-msg { grid-column: 1 / -1; }
+
+@media (max-width: 820px) {
+  .fixed-cost { grid-template-columns: 1fr auto; gap: 4px 12px; }
+  .fixed-since, .fixed-period { text-align: left; }
+  .fixed-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .fixed-form { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 520px) {
+  .fixed-form { grid-template-columns: 1fr; }
+  .store-profit .tax-field { width: 100%; }
+  .profit-table td:first-child .muted { display: none; }
+}

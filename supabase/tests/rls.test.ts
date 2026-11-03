@@ -220,3 +220,21 @@ describe('chaves da API', () => {
     expect(all.rows).toHaveLength(1);
   });
 });
+
+describe('custos fixos', () => {
+  test('só o admin lê e lança custos fixos', async () => {
+    await as(ADMIN, () => db.query(`insert into public.fixed_costs (description, monthly_amount, since) values ('Aluguel', 1800, '2026-01-01')`));
+    const seen = await as(ALICE, () => db.query(`select * from public.fixed_costs`));
+    expect(seen.rows).toHaveLength(0);
+    await denied(as(ALICE, () => db.query(`insert into public.fixed_costs (description, monthly_amount, since) values ('x', 10, '2026-01-01')`)));
+    const admin = await as(ADMIN, () => db.query(`select * from public.fixed_costs`));
+    expect(admin.rows).toHaveLength(1);
+  });
+
+  test('não aceita valor zero nem fim antes do início', async () => {
+    await expect(db.query(`insert into public.fixed_costs (description, monthly_amount, since) values ('x', 0, '2026-01-01')`)).rejects.toThrow(/check/i);
+    await expect(
+      db.query(`insert into public.fixed_costs (description, monthly_amount, since, until) values ('x', 10, '2026-02-01', '2026-01-01')`),
+    ).rejects.toThrow(/check/i);
+  });
+});
